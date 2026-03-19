@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from src.metrics.depth_metrics import contribution_breakdown
-from src.models.baseline import CausalSelfAttention, FeedForward, RMSNorm
+from src.models.baseline import CausalSelfAttention, FeedForward, GPTBaseline, RMSNorm
 from src.utils.config import ModelConfig
 
 
