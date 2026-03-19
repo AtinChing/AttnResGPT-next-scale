@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+outputs/runs/*
+outputs/logs/*
+outputs/checkpoints/*
+outputs/plots/*
+!outputs/runs/.gitkeep
+!outputs/logs/.gitkeep
+!outputs/checkpoints/.gitkeep
+!outputs/plots/.gitkeep

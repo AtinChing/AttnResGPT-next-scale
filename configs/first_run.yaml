@@ -1,0 +1,75 @@
+experiment:
+  name: first_run
+  stage: first_run
+  seed: 1337
+  deterministic: false
+  notes: "Required bootstrap run: SMALL only, contexts 128 and 512, baseline plus AttnRes."
+
+data:
+  dataset_type: tinystories
+  dataset_name: tinystories
+  tokenizer_name: gpt2
+  train_split: train
+  val_split: validation
+  block_size: 128
+  batch_size: 16
+  eval_batch_size: 16
+  num_workers: 0
+  pin_memory: true
+  max_train_examples: null
+  max_train_tokens: 250000
+  max_val_examples: null
+  max_val_tokens: 50000
+
+model:
+  architecture: baseline
+  size_name: small
+  max_seq_len: 128
+  d_model: 384
+  n_layers: 6
+  n_heads: 6
+  d_ff: 1536
+  dropout: 0.1
+  bias: true
+  tie_weights: true
+  norm_eps: 1.0e-5
+  init_std: 0.02
+  attnres:
+    enabled: false
+    window_size: null
+    temperature: 1.0
+    rmsnorm_keys: true
+    zero_init_queries: true
+    include_embedding: true
+    keep_embedding_in_window: true
+    final_readout: true
+
+training:
+  max_steps: 300
+  grad_accum_steps: 1
+  learning_rate: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 30
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  mixed_precision: true
+  amp_dtype: bfloat16
+  log_interval: 10
+  eval_interval: 100
+  checkpoint_interval: 100
+  probe_interval: 100
+  eval_max_batches: 10
+  device: auto
+  resume_from: null
+  allow_resume_mismatch: false
+
+logging:
+  output_root: outputs
+  save_probes: true
+  save_checkpoints: true
+  keep_last_k_checkpoints: 2
+
+evaluation:
+  max_batches: 10
