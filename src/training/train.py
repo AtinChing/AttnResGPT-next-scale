@@ -202,8 +202,9 @@ def train_from_config(config: Config) -> dict[str, Any]:
         "seed": config.experiment.seed,
         "stage": config.experiment.stage,
     }
+    logger = ExperimentLogger(paths, config=config, identity=identity)
+    metadata.update(logger.wandb_metadata())
     write_run_snapshot(config, identity, paths, metadata)
-    logger = ExperimentLogger(paths)
 
     device = get_device(config.training.device)
     amp_dtype = amp_dtype_from_string(config.training.amp_dtype)
@@ -355,6 +356,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 max_batches=config.evaluation.max_batches or config.training.eval_max_batches,
                 collect_artifacts=True,
             )
+            wandb_metadata = logger.wandb_metadata()
             summary = {
                 "run_name": identity.run_name,
                 "config_hash": identity.config_hash,
@@ -368,6 +370,9 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 "parameter_count_trainable": counts["trainable"],
                 "best_val_loss": best_val_loss,
                 "checkpoint_path": last_checkpoint_path,
+                "wandb_enabled": wandb_metadata.get("wandb_enabled"),
+                "wandb_mode": wandb_metadata.get("wandb_mode"),
+                "wandb_url": wandb_metadata.get("wandb_url"),
                 "last_gradient_norms": last_train_payload.get("gradient_norms", {}),
                 "last_activation_norms_train": last_train_payload.get("activation_norms", {}),
                 **data_meta,
@@ -383,6 +388,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 }
             )
             _write_metadata(paths, metadata)
+            logger.close(status='completed')
             return summary
         except Exception as error:
             metadata.update(
@@ -393,6 +399,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 }
             )
             _write_metadata(paths, metadata)
+            logger.close(status='failed')
             raise
     finally:
         norm_tracker.close()

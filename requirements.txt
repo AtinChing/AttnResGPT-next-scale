@@ -9,3 +9,4 @@ transformers>=4.37
 tqdm>=4.66
 pytest>=8.0
 jupyter>=1.0
+wandb>=0.18

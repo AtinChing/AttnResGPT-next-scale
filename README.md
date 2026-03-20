@@ -154,6 +154,22 @@ baseline - attnres
 
 So positive values indicate AttnRes improvement.
 
+## W&B Logging
+
+Weights & Biases logging is enabled by default through `logging.wandb`.
+
+- If `WANDB_API_KEY` is set, the repo uses online W&B logging.
+- If no API key is set, the repo falls back to offline W&B logging automatically.
+- Local JSONL, CSV, checkpoints, and plots are still written even when W&B is disabled or unavailable.
+
+Useful controls:
+
+```bash
+export WANDB_API_KEY=...            # enable cloud-synced runs
+export WANDB_MODE=disabled          # disable W&B for a session
+python -m src.training.train --config configs/first_run.yaml --overrides logging.wandb.enabled=false
+```
+
 ## Local Colab-Kernel Workflow
 
 Use:
