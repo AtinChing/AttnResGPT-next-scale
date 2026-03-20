@@ -24,6 +24,8 @@ class RunPaths:
     checkpoint_dir: Path
     train_log_path: Path
     val_log_path: Path
+    global_train_log_path: Path
+    global_val_log_path: Path
     summary_json_path: Path
     summary_csv_path: Path
     metadata_path: Path
@@ -64,6 +66,7 @@ def build_run_identity(config: Config) -> RunIdentity:
 
 def create_run_paths(output_root: str | Path, identity: RunIdentity) -> RunPaths:
     output_root = Path(output_root)
+    logs_dir = ensure_dir(output_root / "logs")
     run_dir = ensure_dir(output_root / "runs" / identity.run_name)
     probe_dir = ensure_dir(run_dir / "probes")
     checkpoint_dir = ensure_dir(output_root / "checkpoints" / identity.run_name)
@@ -74,6 +77,8 @@ def create_run_paths(output_root: str | Path, identity: RunIdentity) -> RunPaths
         checkpoint_dir=checkpoint_dir,
         train_log_path=run_dir / "train_metrics.jsonl",
         val_log_path=run_dir / "val_metrics.jsonl",
+        global_train_log_path=logs_dir / f"{identity.run_name}_train.jsonl",
+        global_val_log_path=logs_dir / f"{identity.run_name}_val.jsonl",
         summary_json_path=run_dir / "run_summary.json",
         summary_csv_path=run_dir / "run_summary.csv",
         metadata_path=run_dir / "run_metadata.json",
@@ -100,9 +105,11 @@ class ExperimentLogger:
 
     def log_train(self, payload: Mapping[str, Any]) -> None:
         self._append_jsonl(self.paths.train_log_path, payload)
+        self._append_jsonl(self.paths.global_train_log_path, payload)
 
     def log_val(self, payload: Mapping[str, Any]) -> None:
         self._append_jsonl(self.paths.val_log_path, payload)
+        self._append_jsonl(self.paths.global_val_log_path, payload)
 
     def save_probe(self, step: int, payload: Mapping[str, Any]) -> Path:
         probe_path = self.paths.probe_dir / f"step_{step:07d}.json"

@@ -48,6 +48,7 @@ class DataConfig:
     train_split: str = "train"
     val_split: str = "validation"
     block_size: int = 128
+    context_lengths: Optional[list[int]] = None
     batch_size: int = 16
     eval_batch_size: int = 16
     num_workers: int = 0
@@ -111,6 +112,24 @@ class Config:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    batching: dict[str, dict[str, int]] = field(default_factory=dict)
+
+
+def _normalize_batching(values: dict[str, Any]) -> dict[str, dict[str, int]]:
+    normalized: dict[str, dict[str, int]] = {}
+    for key, value in values.items():
+        if not isinstance(value, dict):
+            raise ValueError(f"batching.{key} must be a mapping")
+        payload = dict(value)
+        if "grad_accum" in payload and "grad_accum_steps" not in payload:
+            payload["grad_accum_steps"] = payload.pop("grad_accum")
+        if "batch_size" not in payload or "grad_accum_steps" not in payload:
+            raise ValueError(f"batching.{key} must define batch_size and grad_accum_steps")
+        normalized[key] = {
+            "batch_size": int(payload["batch_size"]),
+            "grad_accum_steps": int(payload["grad_accum_steps"]),
+        }
+    return normalized
 
 
 def _construct_config(values: dict[str, Any]) -> Config:
@@ -126,6 +145,7 @@ def _construct_config(values: dict[str, Any]) -> Config:
         training=TrainingConfig(**values.get("training", {})),
         logging=LoggingConfig(**values.get("logging", {})),
         evaluation=EvaluationConfig(**values.get("evaluation", {})),
+        batching=_normalize_batching(values.get("batching", {})),
     )
 
 
@@ -156,8 +176,8 @@ def _validate_cap_pair(name_a: str, value_a: Optional[int], name_b: str, value_b
 def validate_config(config: Config) -> Config:
     if config.model.architecture not in {"baseline", "attnres"}:
         raise ValueError(f"Unsupported architecture: {config.model.architecture}")
-    if config.model.size_name not in {"small", "medium"}:
-        raise ValueError("model.size_name must be one of: small, medium")
+    if config.model.size_name not in {"small", "medium", "large"}:
+        raise ValueError("model.size_name must be one of: small, medium, large")
     if config.model.d_model % config.model.n_heads != 0:
         raise ValueError("model.d_model must be divisible by model.n_heads")
     if config.data.block_size > config.model.max_seq_len:
@@ -178,6 +198,19 @@ def validate_config(config: Config) -> Config:
         "data.max_val_tokens",
         config.data.max_val_tokens,
     )
+    if config.data.context_lengths is not None:
+        if not config.data.context_lengths:
+            raise ValueError("data.context_lengths must not be empty when set")
+        for context in config.data.context_lengths:
+            if context <= 0:
+                raise ValueError("data.context_lengths values must be positive")
+            if context > config.model.max_seq_len:
+                raise ValueError("each data.context_lengths value must be <= model.max_seq_len")
+    for key, batching in config.batching.items():
+        if not key.startswith("ctx"):
+            raise ValueError("batching keys must look like ctx256 or ctx512")
+        if batching["batch_size"] <= 0 or batching["grad_accum_steps"] <= 0:
+            raise ValueError(f"batching.{key} values must be positive")
     if config.model.architecture == "attnres":
         config.model.attnres.enabled = True
     return config

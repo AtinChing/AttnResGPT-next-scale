@@ -102,6 +102,7 @@ Run the broader sweep:
 ```bash
 python experiments/scale_experiment.py --config configs/small.yaml
 python experiments/scale_experiment.py --config configs/medium.yaml
+python experiments/scale_experiment.py --config configs/large.yaml
 ```
 
 Evaluate a checkpoint:
@@ -140,6 +141,8 @@ Global artifacts:
 - `outputs/logs/run_summaries.csv`
 - `outputs/logs/consolidated_summary_table.csv`
 - `outputs/logs/paired_comparisons.csv`
+- `outputs/summary_large.csv`
+- `outputs/summary_large_comparison.csv`
 
 The paired artifact includes the required loss and perplexity deltas and also logs parameter-count deltas for fairness checks.
 
@@ -151,7 +154,7 @@ baseline - attnres
 
 So positive values indicate AttnRes improvement.
 
-## Colab Workflow
+## Local Colab-Kernel Workflow
 
 Use:
 
@@ -159,21 +162,21 @@ Use:
 - `notebooks/1_train_scale.ipynb`
 - `notebooks/2_analyze_results.ipynb`
 
-The notebooks first try:
+The notebooks now use the local repo/filesystem directly. They look for the repo in:
 
-1. `/content/AttnResGPT-next-scale`
-2. `/content/drive/MyDrive/AttnResGPT-next-scale`
-3. `ATTNRES_REPO_URL` if you set it in Colab
-4. the placeholder `REPO_URL` inside the notebook
+1. the current working tree
+2. the parent of the current working tree
+3. `/content/AttnResGPT-next-scale` if it has already been synced locally
+
+There is no Google Drive dependency and no agent tooling dependency in the notebook flow.
 
 Recommended order:
 
-1. Easiest Colab path: run `0_full_pipeline.ipynb`
+1. Easiest single-notebook path: run `0_full_pipeline.ipynb`
 2. Modular path: run the first-run preset in `1_train_scale.ipynb`
 3. Confirm the four runs completed
-4. Open `2_analyze_results.ipynb`
-5. Review the consolidated summary table and paired comparison artifact
-6. Only then run the broader sweep
+4. Run the new large sweep with `configs/large.yaml` when you are ready
+5. Open `2_analyze_results.ipynb` to review the consolidated summary tables and paired comparison artifacts
 
 ## Design Choices and Assumptions
 

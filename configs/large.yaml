@@ -1,0 +1,84 @@
+experiment:
+  name: large_sweep
+  stage: full_sweep
+  seed: 42
+  deterministic: false
+  notes: "Large 256/512 context sweep for baseline vs AttnRes on TinyStories."
+
+data:
+  dataset_type: tinystories
+  dataset_name: tinystories
+  tokenizer_name: gpt2
+  train_split: train
+  val_split: validation
+  block_size: 256
+  context_lengths: [256, 512]
+  batch_size: 2
+  eval_batch_size: 2
+  num_workers: 0
+  pin_memory: true
+  max_train_examples: null
+  max_train_tokens: 5000000
+  max_val_examples: null
+  max_val_tokens: 200000
+
+model:
+  architecture: baseline
+  size_name: large
+  max_seq_len: 512
+  d_model: 640
+  n_layers: 12
+  n_heads: 10
+  d_ff: 2560
+  dropout: 0.1
+  bias: true
+  tie_weights: true
+  norm_eps: 1.0e-5
+  init_std: 0.02
+  attnres:
+    enabled: false
+    window_size: null
+    temperature: 1.0
+    rmsnorm_keys: true
+    zero_init_queries: true
+    include_embedding: true
+    keep_embedding_in_window: true
+    final_readout: true
+
+training:
+  max_steps: 2000
+  grad_accum_steps: 8
+  learning_rate: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 200
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  mixed_precision: true
+  amp_dtype: float16
+  log_interval: 10
+  eval_interval: 100
+  checkpoint_interval: 200
+  probe_interval: 100
+  eval_max_batches: 10
+  device: auto
+  resume_from: null
+  allow_resume_mismatch: false
+
+logging:
+  output_root: outputs
+  save_probes: true
+  save_checkpoints: true
+  keep_last_k_checkpoints: 2
+
+evaluation:
+  max_batches: 10
+
+batching:
+  ctx256:
+    batch_size: 2
+    grad_accum: 8
+  ctx512:
+    batch_size: 1
+    grad_accum: 16
