@@ -76,6 +76,7 @@ def _prepare_run_config(base_config: Config, *, model_type: str, context: int) -
     payload["model"]["architecture"] = model_type
     payload["model"]["max_seq_len"] = context
     payload["data"]["block_size"] = context
+    payload["data"]["context_lengths"] = [context]
     payload["experiment"]["name"] = (
         f"{base_config.experiment.stage}_{base_config.model.size_name}_{model_type}_ctx{context}"
     )

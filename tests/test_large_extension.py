@@ -40,10 +40,14 @@ def test_large_runner_uses_only_256_and_512_contexts() -> None:
 
     assert baseline_256.model.architecture == 'baseline'
     assert baseline_256.data.block_size == 256
+    assert baseline_256.model.max_seq_len == 256
+    assert baseline_256.data.context_lengths == [256]
     assert baseline_256.training.grad_accum_steps == 8
     assert baseline_256.data.batch_size == 2
     assert attnres_512.model.architecture == 'attnres'
     assert attnres_512.data.block_size == 512
+    assert attnres_512.model.max_seq_len == 512
+    assert attnres_512.data.context_lengths == [512]
     assert attnres_512.training.grad_accum_steps == 16
     assert attnres_512.data.batch_size == 1
 
@@ -59,6 +63,7 @@ def test_large_context_batching_and_oom_fallback() -> None:
     prepared_512 = _prepare_context_config(config, model_type='baseline', context=512)
     fallback = _fallback_batching(prepared_512)
     assert prepared_512.data.batch_size == 1
+    assert prepared_512.data.context_lengths == [512]
     assert prepared_512.training.grad_accum_steps == 16
     assert fallback == {'batch_size': 1, 'grad_accum_steps': 32}
 

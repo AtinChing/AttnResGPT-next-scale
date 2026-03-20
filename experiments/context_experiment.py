@@ -20,6 +20,7 @@ def _prepare_context_config(base_config: Config, *, model_type: str, context: in
     payload['model']['architecture'] = model_type
     payload['model']['max_seq_len'] = context
     payload['data']['block_size'] = context
+    payload['data']['context_lengths'] = [context]
     payload['experiment']['name'] = f"context_{base_config.model.size_name}_{model_type}_ctx{context}"
 
     batching = _resolve_batching(base_config, context)
