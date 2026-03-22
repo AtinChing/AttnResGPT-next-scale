@@ -14,6 +14,7 @@ from src.metrics.norms import (
     language_model_loss,
     mean_last_layer_activation_norm,
     perplexity_from_loss,
+    position_wise_language_model_loss,
     second_half_language_model_loss,
 )
 from src.models.attnres import build_model
@@ -89,6 +90,68 @@ def evaluate_model(
 
     metrics.update(average_depth_artifacts(depth_rows_batches, depth_source_indices_batches))
     return metrics
+
+
+@torch.no_grad()
+def evaluate_positionwise_loss(
+    model: torch.nn.Module,
+    dataloader: torch.utils.data.DataLoader,
+    *,
+    device: torch.device,
+    amp_dtype: torch.dtype,
+    max_batches: Optional[int] = None,
+) -> dict[str, Any]:
+    model.eval()
+    use_autocast = device.type == "cuda" and amp_dtype in {torch.float16, torch.bfloat16}
+
+    loss_sums: torch.Tensor | None = None
+    examples_seen = 0
+
+    for batch_index, batch in enumerate(dataloader):
+        if max_batches is not None and batch_index >= max_batches:
+            break
+
+        input_ids = batch["input_ids"].to(device)
+        targets = batch["targets"].to(device)
+        autocast_context = torch.autocast(
+            device_type=device.type,
+            dtype=amp_dtype,
+            enabled=use_autocast,
+        )
+        with autocast_context if use_autocast else nullcontext():
+            logits, _ = model(input_ids, return_aux=False)
+            position_losses = position_wise_language_model_loss(logits, targets)
+
+        position_losses = position_losses.detach().float().cpu()
+        if loss_sums is None:
+            loss_sums = torch.zeros_like(position_losses)
+        batch_size = int(targets.size(0))
+        loss_sums += position_losses * batch_size
+        examples_seen += batch_size
+
+    if loss_sums is None:
+        return {
+            "position_losses": [],
+            "mean_position_loss": None,
+            "first_half_position_loss": None,
+            "second_half_position_loss": None,
+            "last_token_position_loss": None,
+            "max_position_loss": None,
+            "max_position_index": None,
+        }
+
+    mean_losses = loss_sums / max(1, examples_seen)
+    half_start = mean_losses.numel() // 2
+    max_index = int(torch.argmax(mean_losses).item())
+    return {
+        "position_losses": mean_losses.tolist(),
+        "mean_position_loss": float(mean_losses.mean().item()),
+        "first_half_position_loss": float(mean_losses[:half_start].mean().item()) if half_start > 0 else float(mean_losses.mean().item()),
+        "second_half_position_loss": float(mean_losses[half_start:].mean().item()),
+        "last_token_position_loss": float(mean_losses[-1].item()),
+        "max_position_loss": float(mean_losses[max_index].item()),
+        "max_position_index": max_index,
+    }
 
 
 def load_checkpoint_model(config: Config, checkpoint_path: str | Path, device: torch.device) -> torch.nn.Module:

@@ -106,6 +106,8 @@ class LoggingConfig:
 @dataclass
 class EvaluationConfig:
     max_batches: Optional[int] = 10
+    positionwise_steps: list[int] = field(default_factory=list)
+    positionwise_max_batches: Optional[int] = None
 
 
 @dataclass
@@ -237,6 +239,13 @@ def validate_config(config: Config) -> Config:
         raise ValueError('logging.wandb.project must be non-empty when W&B is enabled')
     if any(not isinstance(tag, str) for tag in config.logging.wandb.tags):
         raise ValueError('logging.wandb.tags must contain strings only')
+    for step in config.evaluation.positionwise_steps:
+        if step <= 0:
+            raise ValueError('evaluation.positionwise_steps values must be positive')
+        if step > config.training.max_steps:
+            raise ValueError('evaluation.positionwise_steps values must be <= training.max_steps')
+    if config.evaluation.positionwise_max_batches is not None and config.evaluation.positionwise_max_batches <= 0:
+        raise ValueError('evaluation.positionwise_max_batches must be positive when set')
     if config.model.architecture == 'attnres':
         config.model.attnres.enabled = True
     return config

@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import shutil
+import time
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
@@ -15,7 +16,7 @@ from torch.optim import AdamW
 from src.data.dataset import build_dataloaders
 from src.metrics.norms import StepNormTracker, language_model_loss, perplexity_from_loss
 from src.models.attnres import build_model
-from src.training.eval import evaluate_model
+from src.training.eval import evaluate_model, evaluate_positionwise_loss
 from src.utils.config import Config, load_config
 from src.utils.logging import (
     ExperimentLogger,
@@ -85,6 +86,9 @@ def build_checkpoint_payload(
     scheduler: torch.optim.lr_scheduler.LRScheduler,
     scaler: torch.amp.GradScaler,
     best_val_loss: Optional[float],
+    cumulative_tokens_seen: int,
+    cumulative_sequences_seen: int,
+    elapsed_time_sec: float,
 ) -> dict[str, Any]:
     payload = _checkpoint_metadata(config, identity, tokenizer_name, step)
     payload.update(
@@ -94,6 +98,9 @@ def build_checkpoint_payload(
             "scheduler": scheduler.state_dict(),
             "scaler": scaler.state_dict() if scaler.is_enabled() else None,
             "best_val_loss": best_val_loss,
+            "cumulative_tokens_seen": cumulative_tokens_seen,
+            "cumulative_sequences_seen": cumulative_sequences_seen,
+            "elapsed_time_sec": elapsed_time_sec,
             "rng_state": get_rng_state(),
         }
     )
@@ -233,6 +240,10 @@ def train_from_config(config: Config) -> dict[str, Any]:
     last_checkpoint_path: str | None = None
     last_train_payload: dict[str, Any] = {}
     last_aux: dict[str, Any] = {}
+    cumulative_tokens_seen = 0
+    cumulative_sequences_seen = 0
+    latest_positionwise_paths: dict[str, Any] | None = None
+    elapsed_time_offset_sec = 0.0
 
     if config.training.resume_from is not None:
         checkpoint_path = _resolve_resume_path(config.training.resume_from)
@@ -249,17 +260,25 @@ def train_from_config(config: Config) -> dict[str, Any]:
         start_step = int(checkpoint["global_step"])
         best_val_loss = checkpoint.get("best_val_loss")
         last_checkpoint_path = str(checkpoint_path)
+        cumulative_tokens_seen = int(checkpoint.get("cumulative_tokens_seen", 0))
+        cumulative_sequences_seen = int(checkpoint.get("cumulative_sequences_seen", 0))
+        elapsed_time_offset_sec = float(checkpoint.get("elapsed_time_sec", 0.0))
 
     train_iterator = cycle(train_loader)
     use_autocast = device.type == "cuda" and config.training.mixed_precision
+    positionwise_steps = set(config.evaluation.positionwise_steps)
+    run_start_time = time.perf_counter()
 
     try:
         try:
             for step in range(start_step + 1, config.training.max_steps + 1):
+                step_start_time = time.perf_counter()
                 model.train()
                 optimizer.zero_grad(set_to_none=True)
                 norm_tracker.reset_step()
                 total_loss = 0.0
+                step_tokens = 0
+                step_sequences = 0
                 probe_step = config.logging.save_probes and (
                     step == 1 or step == config.training.max_steps or step % config.training.probe_interval == 0
                 )
@@ -268,6 +287,8 @@ def train_from_config(config: Config) -> dict[str, Any]:
                     batch = next(train_iterator)
                     input_ids = batch["input_ids"].to(device)
                     targets = batch["targets"].to(device)
+                    step_tokens += int(input_ids.numel())
+                    step_sequences += int(input_ids.size(0))
                     autocast_context = torch.autocast(
                         device_type=device.type,
                         dtype=amp_dtype,
@@ -294,6 +315,10 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 else:
                     optimizer.step()
                 scheduler.step()
+                step_time_sec = time.perf_counter() - step_start_time
+                cumulative_tokens_seen += step_tokens
+                cumulative_sequences_seen += step_sequences
+                elapsed_time_sec = elapsed_time_offset_sec + (time.perf_counter() - run_start_time)
 
                 step_norms = norm_tracker.snapshot()
                 train_payload = {
@@ -302,6 +327,14 @@ def train_from_config(config: Config) -> dict[str, Any]:
                     "train_perplexity": perplexity_from_loss(total_loss / config.training.grad_accum_steps),
                     "learning_rate": optimizer.param_groups[0]["lr"],
                     "global_grad_norm": grad_norm,
+                    "tokens_seen": cumulative_tokens_seen,
+                    "sequences_seen": cumulative_sequences_seen,
+                    "tokens_per_step": step_tokens,
+                    "sequences_per_step": step_sequences,
+                    "tokens_seen_millions": cumulative_tokens_seen / 1_000_000.0,
+                    "step_time_sec": step_time_sec,
+                    "elapsed_time_sec": elapsed_time_sec,
+                    "tokens_per_sec": step_tokens / max(step_time_sec, 1e-8),
                     **step_norms,
                     **_collect_aux_scalars(last_aux),
                 }
@@ -322,7 +355,14 @@ def train_from_config(config: Config) -> dict[str, Any]:
                         max_batches=config.training.eval_max_batches,
                         collect_artifacts=True,
                     )
-                    val_payload = {"step": step, **val_metrics}
+                    val_payload = {
+                        "step": step,
+                        "tokens_seen": cumulative_tokens_seen,
+                        "sequences_seen": cumulative_sequences_seen,
+                        "tokens_seen_millions": cumulative_tokens_seen / 1_000_000.0,
+                        "elapsed_time_sec": elapsed_time_sec,
+                        **val_metrics,
+                    }
                     logger.log_val(val_payload)
                     if best_val_loss is None or val_metrics["val_loss"] < best_val_loss:
                         best_val_loss = float(val_metrics["val_loss"])
@@ -342,11 +382,37 @@ def train_from_config(config: Config) -> dict[str, Any]:
                             scheduler=scheduler,
                             scaler=scaler,
                             best_val_loss=best_val_loss,
+                            cumulative_tokens_seen=cumulative_tokens_seen,
+                            cumulative_sequences_seen=cumulative_sequences_seen,
+                            elapsed_time_sec=elapsed_time_sec,
                         ),
                         checkpoint_path,
                     )
                     last_checkpoint_path = str(checkpoint_path)
                     logger.prune_old_checkpoints(config.logging.keep_last_k_checkpoints)
+
+                if step in positionwise_steps:
+                    positionwise_metrics = evaluate_positionwise_loss(
+                        model,
+                        val_loader,
+                        device=device,
+                        amp_dtype=amp_dtype,
+                        max_batches=config.evaluation.positionwise_max_batches or config.evaluation.max_batches or config.training.eval_max_batches,
+                    )
+                    positionwise_payload = {
+                        "step": step,
+                        "tokens_seen": cumulative_tokens_seen,
+                        "sequences_seen": cumulative_sequences_seen,
+                        "tokens_seen_millions": cumulative_tokens_seen / 1_000_000.0,
+                        "elapsed_time_sec": elapsed_time_sec,
+                        **positionwise_metrics,
+                    }
+                    positionwise_json_path, positionwise_csv_path = logger.log_positionwise(step, positionwise_payload)
+                    latest_positionwise_paths = {
+                        "latest_positionwise_step": step,
+                        "latest_positionwise_json_path": str(positionwise_json_path),
+                        "latest_positionwise_csv_path": str(positionwise_csv_path),
+                    }
 
             final_eval = evaluate_model(
                 model,
@@ -370,12 +436,16 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 "parameter_count_trainable": counts["trainable"],
                 "best_val_loss": best_val_loss,
                 "checkpoint_path": last_checkpoint_path,
+                "tokens_seen": cumulative_tokens_seen,
+                "sequences_seen": cumulative_sequences_seen,
+                "elapsed_time_sec": elapsed_time_offset_sec + (time.perf_counter() - run_start_time),
                 "wandb_enabled": wandb_metadata.get("wandb_enabled"),
                 "wandb_mode": wandb_metadata.get("wandb_mode"),
                 "wandb_url": wandb_metadata.get("wandb_url"),
                 "last_gradient_norms": last_train_payload.get("gradient_norms", {}),
                 "last_activation_norms_train": last_train_payload.get("activation_norms", {}),
                 **data_meta,
+                **(latest_positionwise_paths or {}),
                 **final_eval,
             }
             logger.save_summary(summary)

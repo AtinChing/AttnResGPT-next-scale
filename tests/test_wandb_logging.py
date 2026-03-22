@@ -83,6 +83,15 @@ def test_experiment_logger_logs_to_wandb_when_available(monkeypatch, tmp_path: P
 
     logger.log_train({'step': 1, 'train_loss': 1.23, 'activation_norms': {'layer0': 0.4}, 'ignored': [1, 2]})
     logger.log_val({'step': 1, 'val_loss': 1.11, 'perplexity': 3.0})
+    logger.log_positionwise(
+        100,
+        {
+            'step': 100,
+            'position_losses': [1.0, 2.0, 3.0],
+            'mean_position_loss': 2.0,
+            'max_position_index': 2,
+        },
+    )
     logger.save_summary(
         {
             'run_name': identity.run_name,
@@ -100,6 +109,9 @@ def test_experiment_logger_logs_to_wandb_when_available(monkeypatch, tmp_path: P
     assert run.logged[0][1]['train_loss'] == 1.23
     assert run.logged[0][1]['activation_norms/layer0'] == 0.4
     assert 'ignored' not in run.logged[0][1]
+    assert run.logged[2][0] == 100
+    assert run.logged[2][1]['positionwise_loss/pos_0000'] == 1.0
+    assert run.logged[2][1]['positionwise_eval/mean_position_loss'] == 2.0
     assert run.summary['checkpoint_path'] == '/tmp/checkpoint.pt'
     assert run.summary['last_gradient_norms/layer0'] == 0.2
     assert 'depth_attention_rows' not in run.summary

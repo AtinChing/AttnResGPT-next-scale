@@ -103,6 +103,7 @@ Run the broader sweep:
 python experiments/scale_experiment.py --config configs/small.yaml
 python experiments/scale_experiment.py --config configs/medium.yaml
 python experiments/scale_experiment.py --config configs/large.yaml
+python experiments/scale_experiment.py --config configs/large_ctx512_3000.yaml
 ```
 
 Evaluate a checkpoint:
@@ -145,6 +146,13 @@ Global artifacts:
 - `outputs/summary_large_comparison.csv`
 
 The paired artifact includes the required loss and perplexity deltas and also logs parameter-count deltas for fairness checks.
+
+Additional long-run artifacts:
+
+- `outputs/runs/<run_name>/positionwise/step_*.json`
+- `outputs/runs/<run_name>/positionwise/step_*.csv`
+
+These are written when `evaluation.positionwise_steps` is configured and are also logged to W&B as per-position scalar series plus summary statistics.
 
 `delta_val_loss` and `delta_ppl` in `paired_comparisons.csv` are defined as:
 

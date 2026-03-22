@@ -29,6 +29,16 @@ def test_large_config_loads_and_validates() -> None:
     assert config.batching['ctx512']['batch_size'] == 1
     assert config.batching['ctx512']['grad_accum_steps'] == 16
 
+    publication_config = load_config('configs/large_ctx512_3000.yaml')
+    assert publication_config.model.size_name == 'large'
+    assert publication_config.data.context_lengths == [512]
+    assert publication_config.training.max_steps == 3000
+    assert publication_config.training.log_interval == 100
+    assert publication_config.training.eval_interval == 100
+    assert publication_config.training.checkpoint_interval == 1000
+    assert publication_config.logging.keep_last_k_checkpoints == 3
+    assert publication_config.evaluation.positionwise_steps == [1000, 2000, 3000]
+
 
 def test_large_runner_uses_only_256_and_512_contexts() -> None:
     config = load_config('configs/large.yaml')

@@ -21,3 +21,11 @@ def test_attnres_architecture_enables_attnres_flag() -> None:
     config.model.architecture = "attnres"
     validated = validate_config(config)
     assert validated.model.attnres.enabled is True
+
+
+def test_positionwise_steps_must_fit_within_training_budget() -> None:
+    config = Config()
+    config.training.max_steps = 100
+    config.evaluation.positionwise_steps = [50, 150]
+    with pytest.raises(ValueError):
+        validate_config(config)

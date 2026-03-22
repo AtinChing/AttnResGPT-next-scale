@@ -1,0 +1,93 @@
+experiment:
+  name: large_ctx512_3000
+  stage: publication_run
+  seed: 42
+  deterministic: false
+  notes: "Large 512-context publication-style run with milestone position-wise loss tests."
+
+data:
+  dataset_type: tinystories
+  dataset_name: tinystories
+  tokenizer_name: gpt2
+  train_split: train
+  val_split: validation
+  block_size: 512
+  context_lengths: [512]
+  batch_size: 1
+  eval_batch_size: 1
+  num_workers: 0
+  pin_memory: true
+  max_train_examples: null
+  max_train_tokens: 5000000
+  max_val_examples: null
+  max_val_tokens: 200000
+
+model:
+  architecture: baseline
+  size_name: large
+  max_seq_len: 512
+  d_model: 640
+  n_layers: 12
+  n_heads: 10
+  d_ff: 2560
+  dropout: 0.1
+  bias: true
+  tie_weights: true
+  norm_eps: 1.0e-5
+  init_std: 0.02
+  attnres:
+    enabled: false
+    window_size: null
+    temperature: 1.0
+    rmsnorm_keys: true
+    zero_init_queries: true
+    include_embedding: true
+    keep_embedding_in_window: true
+    final_readout: true
+
+training:
+  max_steps: 3000
+  grad_accum_steps: 16
+  learning_rate: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 300
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  mixed_precision: true
+  amp_dtype: float16
+  log_interval: 100
+  eval_interval: 100
+  checkpoint_interval: 1000
+  probe_interval: 100
+  eval_max_batches: 10
+  device: auto
+  resume_from: null
+  allow_resume_mismatch: false
+
+logging:
+  output_root: outputs
+  save_probes: true
+  save_checkpoints: true
+  keep_last_k_checkpoints: 3
+
+  wandb:
+    enabled: true
+    project: attnres-next-scale
+    entity: null
+    mode: auto
+    group: null
+    job_type: train
+    tags: [publication_run, ctx512, positionwise_loss]
+    run_name: null
+
+evaluation:
+  max_batches: 10
+  positionwise_steps: [1000, 2000, 3000]
+  positionwise_max_batches: 10
+
+batching:
+  ctx512:
+    batch_size: 1
+    grad_accum: 16

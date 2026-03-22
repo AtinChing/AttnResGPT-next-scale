@@ -21,6 +21,16 @@ def second_half_language_model_loss(logits: torch.Tensor, targets: torch.Tensor)
     return language_model_loss(tail_logits, tail_targets)
 
 
+def position_wise_language_model_loss(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    per_token = torch.nn.functional.cross_entropy(
+        logits.reshape(-1, logits.size(-1)),
+        targets.reshape(-1),
+        reduction='none',
+    )
+    per_token = per_token.view_as(targets)
+    return per_token.mean(dim=0)
+
+
 def perplexity_from_loss(loss: float) -> float:
     return float(torch.exp(torch.tensor(min(loss, 20.0))).item())
 

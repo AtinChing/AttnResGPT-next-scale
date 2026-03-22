@@ -22,6 +22,7 @@ class RunIdentity:
 class RunPaths:
     run_dir: Path
     probe_dir: Path
+    positionwise_dir: Path
     checkpoint_dir: Path
     train_log_path: Path
     val_log_path: Path
@@ -82,11 +83,13 @@ def create_run_paths(output_root: str | Path, identity: RunIdentity) -> RunPaths
     logs_dir = ensure_dir(output_root / 'logs')
     run_dir = ensure_dir(output_root / 'runs' / identity.run_name)
     probe_dir = ensure_dir(run_dir / 'probes')
+    positionwise_dir = ensure_dir(run_dir / 'positionwise')
     checkpoint_dir = ensure_dir(output_root / 'checkpoints' / identity.run_name)
     tokenizer_dir = ensure_dir(run_dir / 'tokenizer')
     return RunPaths(
         run_dir=run_dir,
         probe_dir=probe_dir,
+        positionwise_dir=positionwise_dir,
         checkpoint_dir=checkpoint_dir,
         train_log_path=run_dir / 'train_metrics.jsonl',
         val_log_path=run_dir / 'val_metrics.jsonl',
@@ -344,6 +347,40 @@ class ExperimentLogger:
         with probe_path.open('w', encoding='utf-8') as handle:
             json.dump(dict(payload), handle, indent=2, sort_keys=True)
         return probe_path
+
+    def save_positionwise(self, step: int, payload: Mapping[str, Any]) -> tuple[Path, Path]:
+        json_path = self.paths.positionwise_dir / f'step_{step:07d}.json'
+        csv_path = self.paths.positionwise_dir / f'step_{step:07d}.csv'
+
+        with json_path.open('w', encoding='utf-8') as handle:
+            json.dump(dict(payload), handle, indent=2, sort_keys=True)
+
+        position_losses = payload.get('position_losses', [])
+        rows = [
+            {'position': position, 'loss': loss}
+            for position, loss in enumerate(position_losses)
+        ]
+        if rows:
+            write_csv_rows(csv_path, rows)
+        return json_path, csv_path
+
+    def log_positionwise(self, step: int, payload: Mapping[str, Any]) -> tuple[Path, Path]:
+        json_path, csv_path = self.save_positionwise(step, payload)
+        position_losses = payload.get('position_losses', [])
+        wandb_payload: dict[str, Any] = {
+            'step': step,
+            'positionwise_eval': {
+                key: value
+                for key, value in payload.items()
+                if key != 'position_losses'
+            },
+            'positionwise_loss': {
+                f'pos_{position:04d}': float(loss)
+                for position, loss in enumerate(position_losses)
+            },
+        }
+        self._wandb.log(wandb_payload, step=step)
+        return json_path, csv_path
 
     def save_summary(self, payload: Mapping[str, Any]) -> None:
         row = _flatten_summary_row(dict(payload))
