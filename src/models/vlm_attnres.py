@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -121,6 +122,8 @@ def summarize_alpha_by_token_type(
     *,
     device: torch.device,
     max_batches: int | None = None,
+    mixed_precision: bool = False,
+    amp_dtype: torch.dtype = torch.float16,
 ) -> VisionLanguageAlphaSummary:
     model.eval()
     model.set_weight_capture(True)
@@ -135,17 +138,23 @@ def summarize_alpha_by_token_type(
         if max_batches is not None and batch_index >= max_batches:
             break
 
-        pixel_values = batch["pixel_values"].to(device)
+        pixel_values = batch.get("pixel_values")
         input_ids = batch["input_ids"].to(device)
         text_mask = batch["text_mask"].cpu()
         vision_hidden = batch.get("vision_hidden")
         model_kwargs = {
-            "pixel_values": pixel_values if vision_hidden is None else None,
+            "pixel_values": pixel_values.to(device) if pixel_values is not None and vision_hidden is None else None,
             "vision_hidden": vision_hidden.to(device) if vision_hidden is not None else None,
             "input_ids": input_ids,
             "return_aux": False,
         }
-        output = model(**model_kwargs)
+        autocast_context = (
+            torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=True)
+            if device.type == "cuda" and mixed_precision
+            else nullcontext()
+        )
+        with autocast_context:
+            output = model(**model_kwargs)
         prefix_len = int(output["prefix_length"])
 
         for site_index, residual in enumerate(model.decoder.iter_depth_residuals()):

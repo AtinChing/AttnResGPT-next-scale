@@ -526,6 +526,8 @@ def run_vlm(args: argparse.Namespace) -> None:
                     val_loader,
                     device=device,
                     max_batches=args.alpha_eval_max_batches,
+                    mixed_precision=args.mixed_precision,
+                    amp_dtype=amp_dtype,
                 )
                 title_prefix = f"step {global_step}"
                 heatmap_fig, entropy_fig, embedding_fig = _plot_vlm_alpha(alpha_summary, title_prefix=title_prefix)
