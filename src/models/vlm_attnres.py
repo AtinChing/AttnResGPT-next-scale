@@ -12,6 +12,7 @@ from transformers import AutoModel, AutoProcessor
 
 from src.metrics.norms import perplexity_from_loss
 from src.models.attnres import GPTAttnRes
+from src.models.baseline import GPTBaseline
 from src.utils.config import ModelConfig
 
 
@@ -53,14 +54,24 @@ class SiglipAttnResCaptioner(nn.Module):
 
         vision_hidden_size = int(getattr(self.vision_encoder.config, "hidden_size"))
         self.connector = nn.Linear(vision_hidden_size, decoder_config.d_model)
-        self.decoder = GPTAttnRes(decoder_config)
+        if decoder_config.architecture == "attnres":
+            self.decoder = GPTAttnRes(decoder_config)
+        elif decoder_config.architecture == "baseline":
+            self.decoder = GPTBaseline(decoder_config)
+        else:
+            raise ValueError(f"Unsupported decoder architecture: {decoder_config.architecture}")
 
     @property
     def decoder_config(self) -> ModelConfig:
         return self.decoder.config
 
+    @property
+    def supports_alpha_analysis(self) -> bool:
+        return isinstance(self.decoder, GPTAttnRes)
+
     def set_weight_capture(self, enabled: bool) -> None:
-        self.decoder.set_weight_capture(enabled)
+        if hasattr(self.decoder, "set_weight_capture"):
+            self.decoder.set_weight_capture(enabled)
 
     def encode_vision(self, pixel_values: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -125,6 +136,8 @@ def summarize_alpha_by_token_type(
     mixed_precision: bool = False,
     amp_dtype: torch.dtype = torch.float16,
 ) -> VisionLanguageAlphaSummary:
+    if not model.supports_alpha_analysis:
+        raise ValueError("Alpha summarization is only available for AttnRes decoders.")
     model.eval()
     model.set_weight_capture(True)
 

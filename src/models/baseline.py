@@ -155,12 +155,31 @@ class GPTBaseline(nn.Module):
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=self.config.init_std)
 
-    def forward(self, input_ids: torch.Tensor, *, return_aux: bool = False) -> tuple[torch.Tensor, dict[str, Any]]:
-        batch_size, seq_len = input_ids.shape
+    def forward(
+        self,
+        input_ids: torch.Tensor | None,
+        *,
+        return_aux: bool = False,
+        prefix_embeddings: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, dict[str, Any]]:
+        if input_ids is None and prefix_embeddings is None:
+            raise ValueError("Provide input_ids, prefix_embeddings, or both")
+        text_len = 0 if input_ids is None else input_ids.size(1)
+        prefix_len = 0 if prefix_embeddings is None else prefix_embeddings.size(1)
+        seq_len = prefix_len + text_len
         if seq_len > self.config.max_seq_len:
             raise ValueError("Input sequence is longer than model.max_seq_len")
-        positions = torch.arange(seq_len, device=input_ids.device)
-        x = self.token_embedding(input_ids) + self.position_embedding(positions)[None, :, :]
+        device = prefix_embeddings.device if prefix_embeddings is not None else input_ids.device
+        positions = torch.arange(seq_len, device=device)
+        position_embeddings = self.position_embedding(positions)[None, :, :]
+        token_embeddings = self.token_embedding(input_ids) if input_ids is not None else None
+        if prefix_embeddings is None:
+            x = token_embeddings
+        elif token_embeddings is None:
+            x = prefix_embeddings
+        else:
+            x = torch.cat([prefix_embeddings, token_embeddings], dim=1)
+        x = x + position_embeddings
         x = self.dropout(x)
 
         block_output_norms: list[float] = []

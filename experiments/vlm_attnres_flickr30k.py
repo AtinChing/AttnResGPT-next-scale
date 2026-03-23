@@ -33,11 +33,15 @@ def _repo_root() -> Path:
     return PROJECT_ROOT
 
 
-def _load_decoder_config(config_path: str | Path, tokenizer_name: str) -> Config:
+def _load_decoder_config(
+    config_path: str | Path,
+    tokenizer_name: str,
+    decoder_architecture: str,
+) -> Config:
     config = load_config(
         config_path,
         overrides=[
-            "model.architecture=attnres",
+            f"model.architecture={decoder_architecture}",
             "data.block_size=512",
             "model.max_seq_len=512",
         ],
@@ -307,7 +311,7 @@ def _log_checkpoint_artifact(
     output_paths: list[Path],
     step: int,
 ) -> None:
-    artifact = wandb.Artifact(f"vlm_attnres_flickr30k_step_{step:07d}", type="checkpoint")
+    artifact = wandb.Artifact(f"{run.name}_step_{step:07d}", type="checkpoint")
     artifact.add_file(str(checkpoint_path), name=checkpoint_path.name)
     for path in output_paths:
         artifact.add_file(str(path), name=path.name)
@@ -315,7 +319,7 @@ def _log_checkpoint_artifact(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train a tiny VLM with AttnRes using a SigLIP prefix and GPT-AttnRes decoder.")
+    parser = argparse.ArgumentParser(description="Train a tiny SigLIP-prefix VLM with either a baseline or AttnRes GPT decoder.")
     parser.add_argument("--project", default="attnres-next-scale")
     parser.add_argument("--entity", default=None)
     parser.add_argument("--run-name", default="vlm_attnres_flickr30k")
@@ -324,6 +328,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-split", default="train")
     parser.add_argument("--tokenizer-name", default="gpt2")
     parser.add_argument("--decoder-config", default="configs/large_ctx512_3000.yaml")
+    parser.add_argument("--decoder-architecture", choices=["baseline", "attnres"], default="attnres")
     parser.add_argument("--decoder-backend", default="gpt_attnres_large")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--batch-size", type=int, default=1)
@@ -352,19 +357,24 @@ def run_vlm(args: argparse.Namespace) -> None:
     checkpoint_dir = ensure_dir(repo_root / "checkpoints" / args.run_name)
     device = get_device(args.device)
     amp_dtype = amp_dtype_from_string(args.amp_dtype)
-    resolved_decoder_backend = "gpt_attnres_large"
+    resolved_decoder_backend = f"gpt_{args.decoder_architecture}_large"
     if args.decoder_backend != resolved_decoder_backend:
         print(
             f"Requested decoder backend {args.decoder_backend!r}, "
             f"but this repo currently uses the {resolved_decoder_backend!r} fallback for VLM training."
         )
 
-    decoder_config = _load_decoder_config(repo_root / args.decoder_config, args.tokenizer_name)
+    decoder_config = _load_decoder_config(
+        repo_root / args.decoder_config,
+        args.tokenizer_name,
+        args.decoder_architecture,
+    )
     tokenizer = build_tokenizer(args.tokenizer_name)
     model = SiglipAttnResCaptioner(
         vision_model_name=args.vision_model,
         decoder_config=decoder_config.model,
     ).to(device)
+    supports_alpha_analysis = model.supports_alpha_analysis
     trainable_parameters = [parameter for parameter in model.parameters() if parameter.requires_grad]
     total_parameter_count = sum(parameter.numel() for parameter in model.parameters())
     trainable_parameter_count = sum(parameter.numel() for parameter in trainable_parameters)
@@ -382,10 +392,12 @@ def run_vlm(args: argparse.Namespace) -> None:
     )
     run.summary["decoder_backend_requested"] = args.decoder_backend
     run.summary["decoder_backend_resolved"] = resolved_decoder_backend
+    run.summary["decoder_architecture"] = args.decoder_architecture
+    run.summary["supports_alpha_analysis"] = supports_alpha_analysis
     run.summary["device"] = str(device)
     run.summary["mixed_precision"] = bool(args.mixed_precision)
     run.summary["amp_dtype"] = args.amp_dtype
-    run.summary["decoder_backend_note"] = "Using the existing GPT-AttnRes decoder backend for the MPS-safe VLM path."
+    run.summary["decoder_backend_note"] = "Using the existing GPT decoder implementations in this repo for the VLM path."
     run.summary["dataset_name"] = args.dataset_name
     run.summary["dataset_split"] = args.dataset_split
     run.summary["total_parameters"] = total_parameter_count
@@ -521,20 +533,34 @@ def run_vlm(args: argparse.Namespace) -> None:
                     mixed_precision=args.mixed_precision,
                     amp_dtype=amp_dtype,
                 )
-                alpha_summary = summarize_alpha_by_token_type(
-                    model,
-                    val_loader,
-                    device=device,
-                    max_batches=args.alpha_eval_max_batches,
-                    mixed_precision=args.mixed_precision,
-                    amp_dtype=amp_dtype,
-                )
-                title_prefix = f"step {global_step}"
-                heatmap_fig, entropy_fig, embedding_fig = _plot_vlm_alpha(alpha_summary, title_prefix=title_prefix)
-                heatmap_path = save_figure(heatmap_fig, output_dir / f"vision_vs_language_heatmap_step_{global_step:07d}.png")
-                entropy_path = save_figure(entropy_fig, output_dir / f"vision_vs_language_entropy_step_{global_step:07d}.png")
-                embedding_path = save_figure(embedding_fig, output_dir / f"vision_vs_language_embedding_step_{global_step:07d}.png")
-                alpha_summary_path = _save_alpha_summary(alpha_summary, output_dir, global_step)
+                output_paths: list[Path] = []
+                alpha_log_payload: dict[str, Any] = {}
+                alpha_summary_path: Path | None = None
+
+                if supports_alpha_analysis:
+                    alpha_summary = summarize_alpha_by_token_type(
+                        model,
+                        val_loader,
+                        device=device,
+                        max_batches=args.alpha_eval_max_batches,
+                        mixed_precision=args.mixed_precision,
+                        amp_dtype=amp_dtype,
+                    )
+                    title_prefix = f"step {global_step}"
+                    heatmap_fig, entropy_fig, embedding_fig = _plot_vlm_alpha(alpha_summary, title_prefix=title_prefix)
+                    heatmap_path = save_figure(heatmap_fig, output_dir / f"vision_vs_language_heatmap_step_{global_step:07d}.png")
+                    entropy_path = save_figure(entropy_fig, output_dir / f"vision_vs_language_entropy_step_{global_step:07d}.png")
+                    embedding_path = save_figure(embedding_fig, output_dir / f"vision_vs_language_embedding_step_{global_step:07d}.png")
+                    alpha_summary_path = _save_alpha_summary(alpha_summary, output_dir, global_step)
+                    output_paths = [heatmap_path, entropy_path, embedding_path, alpha_summary_path]
+                    alpha_log_payload = {
+                        "alpha/vision_language_heatmap": wandb.Image(str(heatmap_path)),
+                        "alpha/vision_language_entropy": wandb.Image(str(entropy_path)),
+                        "alpha/vision_language_embedding": wandb.Image(str(embedding_path)),
+                        "alpha/vision_mean_embedding_final_site": alpha_summary.vision_embedding[-1],
+                        "alpha/language_mean_embedding_final_site": alpha_summary.language_embedding[-1],
+                        **_flatten_alpha_metrics(alpha_summary),
+                    }
 
                 checkpoint_path = checkpoint_dir / f"step_{global_step:07d}.pt"
                 _save_checkpoint(
@@ -550,7 +576,7 @@ def run_vlm(args: argparse.Namespace) -> None:
                 _log_checkpoint_artifact(
                     run,
                     checkpoint_path=checkpoint_path,
-                    output_paths=[heatmap_path, entropy_path, embedding_path, alpha_summary_path],
+                    output_paths=output_paths,
                     step=global_step,
                 )
 
@@ -558,18 +584,14 @@ def run_vlm(args: argparse.Namespace) -> None:
                     {
                         "eval/loss": metrics["eval_loss"],
                         "eval/perplexity": metrics["perplexity"],
-                        "alpha/vision_language_heatmap": wandb.Image(str(heatmap_path)),
-                        "alpha/vision_language_entropy": wandb.Image(str(entropy_path)),
-                        "alpha/vision_language_embedding": wandb.Image(str(embedding_path)),
-                        "alpha/vision_mean_embedding_final_site": alpha_summary.vision_embedding[-1],
-                        "alpha/language_mean_embedding_final_site": alpha_summary.language_embedding[-1],
-                        **_flatten_alpha_metrics(alpha_summary),
+                        **alpha_log_payload,
                     },
                     step=global_step,
                 )
                 run.summary["best_eval_loss"] = min(best_eval_loss, metrics["eval_loss"])
                 run.summary["last_checkpoint_path"] = str(checkpoint_path)
-                run.summary["last_alpha_summary_path"] = str(alpha_summary_path)
+                if alpha_summary_path is not None:
+                    run.summary["last_alpha_summary_path"] = str(alpha_summary_path)
 
                 if metrics["eval_loss"] < best_eval_loss - 1e-6:
                     best_eval_loss = metrics["eval_loss"]
