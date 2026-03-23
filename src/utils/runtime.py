@@ -22,7 +22,11 @@ def seed_everything(seed: int, deterministic: bool = False) -> None:
 
 def get_device(device: str = "auto") -> torch.device:
     if device == "auto":
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+            return torch.device("mps")
+        return torch.device("cpu")
     return torch.device(device)
 
 

@@ -156,7 +156,7 @@ def evaluate_positionwise_loss(
 
 def load_checkpoint_model(config: Config, checkpoint_path: str | Path, device: torch.device) -> torch.nn.Module:
     model = build_model(config.model).to(device)
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model"])
     return model
 

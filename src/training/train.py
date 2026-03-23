@@ -247,7 +247,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
 
     if config.training.resume_from is not None:
         checkpoint_path = _resolve_resume_path(config.training.resume_from)
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
         if not config.training.allow_resume_mismatch:
             validate_resume_checkpoint(checkpoint, config=config, identity=identity, tokenizer_name=tokenizer.name)
         model.load_state_dict(checkpoint["model"])

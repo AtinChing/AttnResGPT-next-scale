@@ -32,6 +32,9 @@ class DepthAttentionResidual(nn.Module):
         self.keep_embedding_in_window = keep_embedding_in_window
         self.query = nn.Parameter(torch.empty(d_model))
         self.key_norm = RMSNorm(d_model, eps=eps) if rmsnorm_keys else nn.Identity()
+        self.capture_weights = False
+        self.last_weights: torch.Tensor | None = None
+        self.last_source_indices: list[int] = []
         if zero_init_query:
             nn.init.zeros_(self.query)
         else:
@@ -59,6 +62,10 @@ class DepthAttentionResidual(nn.Module):
         logits = logits / max(self.temperature, 1e-6)
         weights = torch.softmax(logits, dim=0)
         mixed = torch.einsum("sbt,sbtd->btd", weights, values)
+
+        if self.capture_weights:
+            self.last_weights = weights.detach().cpu()
+            self.last_source_indices = list(selected_indices)
 
         stats: dict[str, Any] = {}
         if return_stats:
@@ -168,12 +175,43 @@ class GPTAttnRes(nn.Module):
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=self.config.init_std)
 
-    def forward(self, input_ids: torch.Tensor, *, return_aux: bool = False) -> tuple[torch.Tensor, dict[str, Any]]:
-        batch_size, seq_len = input_ids.shape
+    def set_weight_capture(self, enabled: bool) -> None:
+        for module in self.modules():
+            if isinstance(module, DepthAttentionResidual):
+                module.capture_weights = enabled
+                if not enabled:
+                    module.last_weights = None
+                    module.last_source_indices = []
+
+    def iter_depth_residuals(self) -> list[DepthAttentionResidual]:
+        return [module for module in self.modules() if isinstance(module, DepthAttentionResidual)]
+
+    def forward(
+        self,
+        input_ids: torch.Tensor | None,
+        *,
+        return_aux: bool = False,
+        prefix_embeddings: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, dict[str, Any]]:
+        if input_ids is None and prefix_embeddings is None:
+            raise ValueError("Provide input_ids, prefix_embeddings, or both")
+        batch_size = prefix_embeddings.size(0) if prefix_embeddings is not None else input_ids.size(0)
+        text_len = 0 if input_ids is None else input_ids.size(1)
+        prefix_len = 0 if prefix_embeddings is None else prefix_embeddings.size(1)
+        seq_len = prefix_len + text_len
         if seq_len > self.config.max_seq_len:
             raise ValueError("Input sequence is longer than model.max_seq_len")
-        positions = torch.arange(seq_len, device=input_ids.device)
-        x0 = self.token_embedding(input_ids) + self.position_embedding(positions)[None, :, :]
+        device = prefix_embeddings.device if prefix_embeddings is not None else input_ids.device
+        positions = torch.arange(seq_len, device=device)
+        position_embeddings = self.position_embedding(positions)[None, :, :]
+        token_embeddings = self.token_embedding(input_ids) if input_ids is not None else None
+        if prefix_embeddings is None:
+            x0 = token_embeddings
+        elif token_embeddings is None:
+            x0 = prefix_embeddings
+        else:
+            x0 = torch.cat([prefix_embeddings, token_embeddings], dim=1)
+        x0 = x0 + position_embeddings
         x0 = self.dropout(x0)
         history: list[torch.Tensor] = [x0]
 
