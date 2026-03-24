@@ -318,6 +318,13 @@ def _log_checkpoint_artifact(
     run.log_artifact(artifact, aliases=["latest", f"step-{step:07d}"])
 
 
+def _optimizer_to_device(optimizer: torch.optim.Optimizer, device: torch.device) -> None:
+    for state in optimizer.state.values():
+        for key, value in state.items():
+            if isinstance(value, torch.Tensor):
+                state[key] = value.to(device)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a tiny SigLIP-prefix VLM with either a baseline or AttnRes GPT decoder.")
     parser.add_argument("--project", default="attnres-next-scale")
@@ -343,6 +350,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--eval-max-batches", type=int, default=None)
     parser.add_argument("--alpha-eval-max-batches", type=int, default=None)
     parser.add_argument("--plateau-patience", type=int, default=2)
+    parser.add_argument("--resume-from", default=None)
+    parser.add_argument("--wandb-resume", choices=["never", "allow", "must"], default="never")
     parser.add_argument("--mixed-precision", dest="mixed_precision", action="store_true")
     parser.add_argument("--no-mixed-precision", dest="mixed_precision", action="store_false")
     parser.set_defaults(mixed_precision=True)
@@ -381,15 +390,17 @@ def run_vlm(args: argparse.Namespace) -> None:
     use_autocast = device.type == "cuda" and args.mixed_precision
     scaler = torch.amp.GradScaler("cuda", enabled=use_autocast and amp_dtype == torch.float16)
 
-    run = wandb.init(
-        entity=args.entity,
-        project=args.project,
-        name=args.run_name,
-        id=args.run_name,
-        resume="allow",
-        config=vars(args),
-        job_type="train",
-    )
+    wandb_init_kwargs: dict[str, Any] = {
+        "entity": args.entity,
+        "project": args.project,
+        "name": args.run_name,
+        "config": vars(args),
+        "job_type": "train",
+    }
+    if args.wandb_resume != "never":
+        wandb_init_kwargs["id"] = args.run_name
+        wandb_init_kwargs["resume"] = args.wandb_resume
+    run = wandb.init(**wandb_init_kwargs)
     run.summary["decoder_backend_requested"] = args.decoder_backend
     run.summary["decoder_backend_resolved"] = resolved_decoder_backend
     run.summary["decoder_architecture"] = args.decoder_architecture
@@ -475,12 +486,46 @@ def run_vlm(args: argparse.Namespace) -> None:
     run.summary["cached_val_examples"] = len(cached_val_examples)
 
     global_step = 0
+    resume_epoch = 1
+    resume_batches_to_skip = 0
     best_eval_loss = float("inf")
     plateau_count = 0
 
+    if args.resume_from is not None:
+        resume_path = Path(args.resume_from)
+        checkpoint = torch.load(resume_path, map_location=device)
+        checkpoint_backend = checkpoint.get("decoder_backend")
+        if checkpoint_backend is not None and checkpoint_backend != resolved_decoder_backend:
+            raise ValueError(
+                f"Checkpoint decoder backend {checkpoint_backend!r} does not match "
+                f"current backend {resolved_decoder_backend!r}."
+            )
+        model.load_state_dict(checkpoint["model"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        _optimizer_to_device(optimizer, device)
+        scheduler.load_state_dict(checkpoint["scheduler"])
+        global_step = int(checkpoint.get("step", 0))
+        resume_epoch = int(checkpoint.get("epoch", 1))
+        best_eval_loss = float(checkpoint.get("best_eval_loss", float("inf")))
+        resume_batches_to_skip = global_step - ((resume_epoch - 1) * len(train_loader))
+        resume_batches_to_skip = max(0, min(len(train_loader), resume_batches_to_skip))
+        run.summary["resumed_from_checkpoint"] = str(resume_path)
+        run.summary["resume_start_step"] = global_step
+        run.summary["resume_start_epoch"] = resume_epoch
+        if global_step >= total_steps:
+            run.summary["stopped_early"] = False
+            run.summary["final_step"] = global_step
+            run.finish()
+            return
+
     for epoch in range(1, args.epochs + 1):
+        if epoch < resume_epoch:
+            continue
         model.train()
-        for batch in train_loader:
+        batches_to_skip = resume_batches_to_skip if epoch == resume_epoch else 0
+        for batch_index, batch in enumerate(train_loader, start=1):
+            if batch_index <= batches_to_skip:
+                continue
             global_step += 1
             autocast_context = (
                 torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=True)
