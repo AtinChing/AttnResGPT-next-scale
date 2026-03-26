@@ -100,7 +100,7 @@ class SiglipAttnResCaptioner(nn.Module):
         )
         prefix_len = prefix_embeddings.size(1)
         target_len = input_ids.size(1) if targets is None else targets.size(1)
-        text_logits = logits[:, prefix_len - 1 : prefix_len - 1 + target_len, :]
+        text_logits = logits[:, prefix_len : prefix_len + target_len, :]
 
         payload: dict[str, Any] = {
             "logits": text_logits,
