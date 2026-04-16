@@ -11,3 +11,37 @@ outputs/plots/*
 !outputs/logs/.gitkeep
 !outputs/checkpoints/.gitkeep
 !outputs/plots/.gitkeep
+
+# OS
+.DS_Store
+
+# Claude Code internals
+.claude/
+
+# W&B runtime logs and local sync
+wandb/
+
+# Temporary files
+tmp/
+
+# Training run output artifacts (logs, checkpoints, model files)
+outputs/vlm_attnres_flickr30k/
+outputs/research_pipeline/artifact/
+outputs/research_pipeline/smoke_large/
+outputs/research_pipeline/tmp_full_backup/
+outputs/research_pipeline/*.log
+outputs/wandb_recovery/
+
+# W&B data exports
+wandb_export_*.csv
+wandb_export_*.xls
+
+# Model/data archives
+*.zip
+
+# PyTorch checkpoint files
+*.pt
+*.pth
+
+# Downloaded model/data artifacts
+outputs/research_pipeline/part1_downloads/
