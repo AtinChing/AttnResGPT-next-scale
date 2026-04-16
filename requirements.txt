@@ -6,6 +6,7 @@ matplotlib>=3.7
 seaborn>=0.13
 datasets>=2.16
 transformers>=4.37
+sentencepiece>=0.2.0
 tqdm>=4.66
 pytest>=8.0
 jupyter>=1.0
