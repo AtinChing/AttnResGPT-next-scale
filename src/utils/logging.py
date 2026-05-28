@@ -218,12 +218,13 @@ class OptionalWandbLogger:
             return
 
         run_name = config.logging.wandb.run_name or identity.run_name
+        # Keep canonical resume behavior only for canonical run names.
+        # Custom names (e.g. *_seedtest) should create distinct W&B runs.
+        use_identity_resume = run_name == identity.run_name
         init_kwargs = {
             'project': config.logging.wandb.project,
             'entity': config.logging.wandb.entity,
             'name': run_name,
-            'id': identity.run_name,
-            'resume': 'allow',
             'mode': mode,
             'dir': str(paths.run_dir),
             'job_type': config.logging.wandb.job_type,
@@ -231,6 +232,9 @@ class OptionalWandbLogger:
             'tags': _build_wandb_tags(config),
             'config': config_to_dict(config),
         }
+        if use_identity_resume:
+            init_kwargs['id'] = identity.run_name
+            init_kwargs['resume'] = 'allow'
 
         init_error: str | None = None
         try:
