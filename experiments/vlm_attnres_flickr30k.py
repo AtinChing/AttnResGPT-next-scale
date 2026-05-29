@@ -25,7 +25,7 @@ from src.data.tokenizer import build_tokenizer
 from src.models.vlm_attnres import SiglipAttnResCaptioner, summarize_alpha_by_token_type
 from src.training.train import build_scheduler
 from src.utils.config import Config, load_config
-from src.utils.runtime import amp_dtype_from_string, ensure_dir, get_device
+from src.utils.runtime import amp_dtype_from_string, ensure_dir, get_device, manual_seed_generator, seed_everything
 from src.vlm.flickr30k import build_flickr30k_dataloaders
 
 
@@ -53,6 +53,20 @@ def _load_decoder_config(
 
 def _choose_batch_size(args: argparse.Namespace) -> int:
     return args.batch_size if args.batch_size > 0 else 1
+
+
+def _default_vlm_run_name(decoder_architecture: str, seed: int, batch_size: int) -> str:
+    return f"vlm_{decoder_architecture}_flickr30k_b{batch_size}_seed{seed}"
+
+
+def _resolve_run_name(args: argparse.Namespace) -> str:
+    if args.run_name is not None:
+        return args.run_name
+    return _default_vlm_run_name(
+        args.decoder_architecture,
+        args.seed,
+        _choose_batch_size(args),
+    )
 
 
 def _language_model_metrics(losses: list[float]) -> dict[str, float]:
@@ -187,13 +201,16 @@ def _build_cached_loader(
     batch_size: int,
     shuffle: bool,
     pad_token_id: int,
+    seed: int,
 ) -> DataLoader:
-    return DataLoader(
-        CachedVisionDataset(examples),
-        batch_size=batch_size,
-        shuffle=shuffle,
-        collate_fn=CachedVisionCollator(pad_token_id),
-    )
+    loader_kwargs: dict[str, Any] = {
+        "batch_size": batch_size,
+        "shuffle": shuffle,
+        "collate_fn": CachedVisionCollator(pad_token_id),
+    }
+    if shuffle:
+        loader_kwargs["generator"] = manual_seed_generator(seed)
+    return DataLoader(CachedVisionDataset(examples), **loader_kwargs)
 
 
 @torch.no_grad()
@@ -329,7 +346,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a tiny SigLIP-prefix VLM with either a baseline or AttnRes GPT decoder.")
     parser.add_argument("--project", default="attnres-next-scale")
     parser.add_argument("--entity", default=None)
-    parser.add_argument("--run-name", default="vlm_attnres_flickr30k")
+    parser.add_argument("--run-name", default=None, help="Defaults to vlm_{arch}_flickr30k_b{batch}_seed{seed}.")
     parser.add_argument("--vision-model", default="google/siglip-base-patch16-224")
     parser.add_argument("--dataset-name", default="Mozilla/flickr30k-transformed-captions")
     parser.add_argument("--dataset-split", default="train")
@@ -361,6 +378,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def run_vlm(args: argparse.Namespace) -> None:
+    seed_everything(args.seed)
+    args.run_name = _resolve_run_name(args)
     repo_root = _repo_root()
     output_dir = ensure_dir(repo_root / "outputs" / args.run_name)
     checkpoint_dir = ensure_dir(repo_root / "checkpoints" / args.run_name)
@@ -449,12 +468,14 @@ def run_vlm(args: argparse.Namespace) -> None:
         batch_size=_choose_batch_size(args),
         shuffle=True,
         pad_token_id=pad_token_id,
+        seed=args.seed,
     )
     val_loader = _build_cached_loader(
         cached_val_examples,
         batch_size=_choose_batch_size(args),
         shuffle=False,
         pad_token_id=pad_token_id,
+        seed=args.seed,
     )
     cache_elapsed = time.perf_counter() - cache_started
     run.log(

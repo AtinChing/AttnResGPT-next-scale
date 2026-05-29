@@ -20,6 +20,18 @@ def seed_everything(seed: int, deterministic: bool = False) -> None:
         torch.backends.cudnn.benchmark = False
 
 
+def manual_seed_generator(seed: int) -> torch.Generator:
+    generator = torch.Generator()
+    generator.manual_seed(seed)
+    return generator
+
+
+def seed_worker(worker_id: int) -> None:
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def get_device(device: str = "auto") -> torch.device:
     if device == "auto":
         if torch.cuda.is_available():

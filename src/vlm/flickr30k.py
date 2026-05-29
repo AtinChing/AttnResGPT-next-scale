@@ -8,6 +8,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, Dataset
 
 from src.data.tokenizer import TokenizerWrapper
+from src.utils.runtime import manual_seed_generator, seed_worker
 
 
 @dataclass
@@ -180,13 +181,19 @@ def build_flickr30k_dataloaders(
         tokenizer=tokenizer,
         max_text_tokens=max_text_tokens,
     )
+    train_loader_kwargs: dict[str, Any] = {
+        "batch_size": batch_size,
+        "shuffle": True,
+        "collate_fn": collator,
+        "num_workers": num_workers,
+        "generator": manual_seed_generator(seed),
+    }
+    if num_workers > 0:
+        train_loader_kwargs["persistent_workers"] = True
+        train_loader_kwargs["worker_init_fn"] = seed_worker
     train_loader = DataLoader(
         CaptionExampleDataset(dataset, train_examples),
-        batch_size=batch_size,
-        shuffle=True,
-        collate_fn=collator,
-        num_workers=num_workers,
-        persistent_workers=num_workers > 0,
+        **train_loader_kwargs,
     )
     val_loader = DataLoader(
         CaptionExampleDataset(dataset, val_examples),
