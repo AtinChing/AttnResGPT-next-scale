@@ -99,9 +99,17 @@ def get_rng_state() -> dict[str, Any]:
     return state
 
 
+def _coerce_torch_rng_state(state: Any) -> torch.Tensor:
+    """Checkpoints may deserialize RNG state as a non-uint8 tensor."""
+    if isinstance(state, torch.Tensor):
+        return state.to(dtype=torch.uint8).cpu()
+    return torch.as_tensor(state, dtype=torch.uint8)
+
+
 def set_rng_state(state: dict[str, Any]) -> None:
     random.setstate(state["python"])
     np.random.set_state(state["numpy"])
-    torch.set_rng_state(state["torch"])
+    torch.set_rng_state(_coerce_torch_rng_state(state["torch"]))
     if torch.cuda.is_available() and "torch_cuda" in state:
-        torch.cuda.set_rng_state_all(state["torch_cuda"])
+        cuda_states = [_coerce_torch_rng_state(s) for s in state["torch_cuda"]]
+        torch.cuda.set_rng_state_all(cuda_states)
