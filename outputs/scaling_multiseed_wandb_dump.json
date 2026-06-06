@@ -1,0 +1,1517 @@
+{
+  "project": "atin5551-uc-davis/attnres-next-scale",
+  "filters": {
+    "state": "finished",
+    "exclude_smoke": true,
+    "size_step_floor": {
+      "small": 300,
+      "medium": 200,
+      "large": 3000
+    },
+    "budget_rule": "max(size_floor, steps_in_run_name)"
+  },
+  "paired_seed_check": [
+    {
+      "model_size": "large",
+      "context_length": 512,
+      "steps_in_name": 3000,
+      "baseline_seeds": [
+        42,
+        123,
+        456,
+        789
+      ],
+      "attnres_seeds": [
+        123,
+        456,
+        789
+      ],
+      "paired": false
+    },
+    {
+      "model_size": "medium",
+      "context_length": 128,
+      "steps_in_name": 200,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "medium",
+      "context_length": 256,
+      "steps_in_name": 200,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "steps_in_name": 200,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "steps_in_name": 3000,
+      "baseline_seeds": [
+        123,
+        456,
+        789
+      ],
+      "attnres_seeds": [
+        123,
+        456,
+        789
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "small",
+      "context_length": 128,
+      "steps_in_name": 300,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "small",
+      "context_length": 256,
+      "steps_in_name": 300,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "steps_in_name": 300,
+      "baseline_seeds": [
+        1337
+      ],
+      "attnres_seeds": [
+        1337
+      ],
+      "paired": true
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "steps_in_name": 3000,
+      "baseline_seeds": [
+        123,
+        456,
+        789
+      ],
+      "attnres_seeds": [
+        123,
+        456,
+        789
+      ],
+      "paired": true
+    }
+  ],
+  "groups": [
+    {
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "attnres",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 123,
+          "final_val_loss": 1.9775998711586,
+          "final_perplexity": 7.2253804206848145,
+          "second_half_loss": 1.9485387802124023,
+          "final_step": 3000,
+          "total_parameters": 91591680,
+          "trainable_parameters": 91591680
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 1.971286690235138,
+          "final_perplexity": 7.179908752441406,
+          "second_half_loss": 1.9491828441619872,
+          "final_step": 3000,
+          "total_parameters": 91591680,
+          "trainable_parameters": 91591680
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 1.9783034563064577,
+          "final_perplexity": 7.230465888977051,
+          "second_half_loss": 1.9561800837516783,
+          "final_step": 3000,
+          "total_parameters": 91591680,
+          "trainable_parameters": 91591680
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.16574315518140792,
+          "mean_early_contribution": 0.34888850391447096,
+          "mean_late_contribution": 0.5201290585100651,
+          "mean_depth_attention_entropy": 2.136803698684089
+        },
+        {
+          "mean_embedding_contribution": 0.16631054669618606,
+          "mean_early_contribution": 0.3628643863709537,
+          "mean_late_contribution": 0.5055621229112148,
+          "mean_depth_attention_entropy": 2.1071140847029164
+        },
+        {
+          "mean_embedding_contribution": 0.16553058609366417,
+          "mean_early_contribution": 0.38866808569218847,
+          "mean_late_contribution": 0.4805708980808656,
+          "mean_depth_attention_entropy": 2.1291286095092072
+        }
+      ]
+    },
+    {
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "baseline",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        42,
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 42,
+          "final_val_loss": 2.131784439086914,
+          "final_perplexity": 8.429896354675293,
+          "second_half_loss": 2.125480616092682,
+          "final_step": 3000,
+          "total_parameters": 91559680,
+          "trainable_parameters": 91559680
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 2.1449934601783753,
+          "final_perplexity": 8.541986465454102,
+          "second_half_loss": 2.138010346889496,
+          "final_step": 3000,
+          "total_parameters": 91559680,
+          "trainable_parameters": 91559680
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 2.1268943428993223,
+          "final_perplexity": 8.388772964477539,
+          "second_half_loss": 2.126976120471954,
+          "final_step": 3000,
+          "total_parameters": 91559680,
+          "trainable_parameters": 91559680
+        },
+        {
+          "seed": 123,
+          "final_val_loss": 2.1461852550506593,
+          "final_perplexity": 8.552170753479004,
+          "second_half_loss": 2.1428160548210142,
+          "final_step": 3000,
+          "total_parameters": 91559680,
+          "trainable_parameters": 91559680
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "medium",
+      "context_length": 128,
+      "architecture": "attnres",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.498342609405517,
+          "final_perplexity": 89.86804962158203,
+          "second_half_loss": 4.492580270767212,
+          "final_step": 200,
+          "total_parameters": 51025920,
+          "trainable_parameters": 51025920
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.2461423965937951,
+          "mean_early_contribution": 0.5268958943197504,
+          "mean_late_contribution": 0.2740778122097254,
+          "mean_depth_attention_entropy": 1.7367596183629597
+        }
+      ]
+    },
+    {
+      "model_size": "medium",
+      "context_length": 128,
+      "architecture": "baseline",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.751760482788086,
+          "final_perplexity": 115.78794860839844,
+          "second_half_loss": 4.739483070373535,
+          "final_step": 200,
+          "total_parameters": 51008512,
+          "trainable_parameters": 51008512
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "medium",
+      "context_length": 256,
+      "architecture": "attnres",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.374828433990478,
+          "final_perplexity": 79.42620086669922,
+          "second_half_loss": 4.320406866073609,
+          "final_step": 200,
+          "total_parameters": 51091456,
+          "trainable_parameters": 51091456
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.2523016657899408,
+          "mean_early_contribution": 0.5102852589916438,
+          "mean_late_contribution": 0.28414421528577805,
+          "mean_depth_attention_entropy": 1.7610544404562782
+        }
+      ]
+    },
+    {
+      "model_size": "medium",
+      "context_length": 256,
+      "architecture": "baseline",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.578156518936157,
+          "final_perplexity": 97.33479309082033,
+          "second_half_loss": 4.5270843505859375,
+          "final_step": 200,
+          "total_parameters": 51074048,
+          "trainable_parameters": 51074048
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.261648321151734,
+          "final_perplexity": 70.92678833007812,
+          "second_half_loss": 4.219261264801025,
+          "final_step": 200,
+          "total_parameters": 51222528,
+          "trainable_parameters": 51222528
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.25010498876080794,
+          "mean_early_contribution": 0.5092119565233588,
+          "mean_late_contribution": 0.28755148872733116,
+          "mean_depth_attention_entropy": 1.7768294408040888
+        }
+      ]
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 123,
+          "final_val_loss": 2.1359838604927064,
+          "final_perplexity": 8.465372085571289,
+          "second_half_loss": 2.1215575456619264,
+          "final_step": 3000,
+          "total_parameters": 51222528,
+          "trainable_parameters": 51222528
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 2.1259864211082458,
+          "final_perplexity": 8.381159782409668,
+          "second_half_loss": 2.113723373413086,
+          "final_step": 3000,
+          "total_parameters": 51222528,
+          "trainable_parameters": 51222528
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 2.143569564819336,
+          "final_perplexity": 8.529829978942871,
+          "second_half_loss": 2.1379398345947265,
+          "final_step": 3000,
+          "total_parameters": 51222528,
+          "trainable_parameters": 51222528
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.2214857050601174,
+          "mean_early_contribution": 0.31088380338042043,
+          "mean_late_contribution": 0.5162876239046454,
+          "mean_depth_attention_entropy": 1.7888602845042068
+        },
+        {
+          "mean_embedding_contribution": 0.2196087320061291,
+          "mean_early_contribution": 0.3613314857320802,
+          "mean_late_contribution": 0.4678342314437032,
+          "mean_depth_attention_entropy": 1.8351525527644248
+        },
+        {
+          "mean_embedding_contribution": 0.22360502402572072,
+          "mean_early_contribution": 0.34692076298961183,
+          "mean_late_contribution": 0.4779989002272486,
+          "mean_depth_attention_entropy": 1.840920279158608
+        }
+      ]
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.432640838623047,
+          "final_perplexity": 84.15337371826172,
+          "second_half_loss": 4.374948883056641,
+          "final_step": 200,
+          "total_parameters": 51205120,
+          "trainable_parameters": 51205120
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 123,
+          "final_val_loss": 2.2818876266479493,
+          "final_perplexity": 9.795151710510254,
+          "second_half_loss": 2.2838747262954713,
+          "final_step": 3000,
+          "total_parameters": 51205120,
+          "trainable_parameters": 51205120
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 2.2706092834472655,
+          "final_perplexity": 9.685300827026367,
+          "second_half_loss": 2.2778929710388183,
+          "final_step": 3000,
+          "total_parameters": 51205120,
+          "trainable_parameters": 51205120
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 2.2800228118896486,
+          "final_perplexity": 9.776904106140137,
+          "second_half_loss": 2.280803656578064,
+          "final_step": 3000,
+          "total_parameters": 51205120,
+          "trainable_parameters": 51205120
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "small",
+      "context_length": 128,
+      "architecture": "attnres",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.275399112701416,
+          "final_perplexity": 71.90884399414062,
+          "second_half_loss": 4.25222110748291,
+          "final_step": 300,
+          "total_parameters": 30000384,
+          "trainable_parameters": 30000384
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.28522287767667037,
+          "mean_early_contribution": 0.5177032820259532,
+          "mean_late_contribution": 0.25663861135641736,
+          "mean_depth_attention_entropy": 1.5102402820036962
+        }
+      ]
+    },
+    {
+      "model_size": "small",
+      "context_length": 128,
+      "architecture": "baseline",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.372255468368531,
+          "final_perplexity": 79.22209930419922,
+          "second_half_loss": 4.350169086456299,
+          "final_step": 300,
+          "total_parameters": 29990400,
+          "trainable_parameters": 29990400
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "small",
+      "context_length": 256,
+      "architecture": "attnres",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.215208578109741,
+          "final_perplexity": 67.70828247070312,
+          "second_half_loss": 4.182821154594421,
+          "final_step": 300,
+          "total_parameters": 30049536,
+          "trainable_parameters": 30049536
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.2997362653796489,
+          "mean_early_contribution": 0.49652364539603394,
+          "mean_late_contribution": 0.2620954116185506,
+          "mean_depth_attention_entropy": 1.5359149598158324
+        }
+      ]
+    },
+    {
+      "model_size": "small",
+      "context_length": 256,
+      "architecture": "baseline",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.297625923156739,
+          "final_perplexity": 73.52503967285156,
+          "second_half_loss": 4.269647693634033,
+          "final_step": 300,
+          "total_parameters": 30039552,
+          "trainable_parameters": 30039552
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.1294108629226685,
+          "final_perplexity": 62.14129638671875,
+          "second_half_loss": 4.119111347198486,
+          "final_step": 300,
+          "total_parameters": 30147840,
+          "trainable_parameters": 30147840
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.2772556096315384,
+          "mean_early_contribution": 0.5279470011591911,
+          "mean_late_contribution": 0.25502610330780345,
+          "mean_depth_attention_entropy": 1.5716729897719164
+        }
+      ]
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 123,
+          "final_val_loss": 2.3937055587768556,
+          "final_perplexity": 10.954010009765623,
+          "second_half_loss": 2.388131332397461,
+          "final_step": 3000,
+          "total_parameters": 30147840,
+          "trainable_parameters": 30147840
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 2.4010962009429933,
+          "final_perplexity": 11.035265922546388,
+          "second_half_loss": 2.3988412618637085,
+          "final_step": 3000,
+          "total_parameters": 30147840,
+          "trainable_parameters": 30147840
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 2.4044018268585203,
+          "final_perplexity": 11.071805000305176,
+          "second_half_loss": 2.397410249710083,
+          "final_step": 3000,
+          "total_parameters": 30147840,
+          "trainable_parameters": 30147840
+        }
+      ],
+      "depth_utilization": [
+        {
+          "mean_embedding_contribution": 0.28013389672224337,
+          "mean_early_contribution": 0.3139545043062147,
+          "mean_late_contribution": 0.465900460879008,
+          "mean_depth_attention_entropy": 1.5646198302543222
+        },
+        {
+          "mean_embedding_contribution": 0.2821159465954854,
+          "mean_early_contribution": 0.31842962293012533,
+          "mean_late_contribution": 0.45927810420592624,
+          "mean_depth_attention_entropy": 1.573478110027141
+        },
+        {
+          "mean_embedding_contribution": 0.28085647695339644,
+          "mean_early_contribution": 0.33675078851229046,
+          "mean_late_contribution": 0.44232137501239777,
+          "mean_depth_attention_entropy": 1.5428969477160046
+        }
+      ]
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "seeds": [
+        1337
+      ],
+      "core": [
+        {
+          "seed": 1337,
+          "final_val_loss": 4.181706142425537,
+          "final_perplexity": 65.47746276855469,
+          "second_half_loss": 4.17211651802063,
+          "final_step": 300,
+          "total_parameters": 30137856,
+          "trainable_parameters": 30137856
+        }
+      ],
+      "depth_utilization": []
+    },
+    {
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "seeds": [
+        123,
+        456,
+        789
+      ],
+      "core": [
+        {
+          "seed": 123,
+          "final_val_loss": 2.480041432380676,
+          "final_perplexity": 11.941760063171388,
+          "second_half_loss": 2.4852392435073853,
+          "final_step": 3000,
+          "total_parameters": 30137856,
+          "trainable_parameters": 30137856
+        },
+        {
+          "seed": 456,
+          "final_val_loss": 2.482586669921875,
+          "final_perplexity": 11.97219181060791,
+          "second_half_loss": 2.490284824371338,
+          "final_step": 3000,
+          "total_parameters": 30137856,
+          "trainable_parameters": 30137856
+        },
+        {
+          "seed": 789,
+          "final_val_loss": 2.4738312005996703,
+          "final_perplexity": 11.867827415466309,
+          "second_half_loss": 2.4804704904556276,
+          "final_step": 3000,
+          "total_parameters": 30137856,
+          "trainable_parameters": 30137856
+        }
+      ],
+      "depth_utilization": []
+    }
+  ],
+  "runs": [
+    {
+      "run_name": "tinystories_small_baseline_ctx128_steps300_seed1337",
+      "wandb_id": "tinystories_small_baseline_ctx128_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx128_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 128,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.372255468368531,
+        "final_perplexity": 79.22209930419922,
+        "second_half_loss": 4.350169086456299,
+        "final_step": 300,
+        "total_parameters": 29990400,
+        "trainable_parameters": 29990400
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx128_steps300_seed1337",
+      "wandb_id": "tinystories_small_attnres_ctx128_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx128_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 128,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.275399112701416,
+        "final_perplexity": 71.90884399414062,
+        "second_half_loss": 4.25222110748291,
+        "final_step": 300,
+        "total_parameters": 30000384,
+        "trainable_parameters": 30000384
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.28522287767667037,
+        "mean_early_contribution": 0.5177032820259532,
+        "mean_late_contribution": 0.25663861135641736,
+        "mean_depth_attention_entropy": 1.5102402820036962
+      }
+    },
+    {
+      "run_name": "tinystories_small_baseline_ctx512_steps300_seed1337",
+      "wandb_id": "tinystories_small_baseline_ctx512_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx512_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.181706142425537,
+        "final_perplexity": 65.47746276855469,
+        "second_half_loss": 4.17211651802063,
+        "final_step": 300,
+        "total_parameters": 30137856,
+        "trainable_parameters": 30137856
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx512_steps300_seed1337",
+      "wandb_id": "tinystories_small_attnres_ctx512_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx512_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.1294108629226685,
+        "final_perplexity": 62.14129638671875,
+        "second_half_loss": 4.119111347198486,
+        "final_step": 300,
+        "total_parameters": 30147840,
+        "trainable_parameters": 30147840
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2772556096315384,
+        "mean_early_contribution": 0.5279470011591911,
+        "mean_late_contribution": 0.25502610330780345,
+        "mean_depth_attention_entropy": 1.5716729897719164
+      }
+    },
+    {
+      "run_name": "tinystories_small_baseline_ctx256_steps300_seed1337",
+      "wandb_id": "tinystories_small_baseline_ctx256_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx256_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 256,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.297625923156739,
+        "final_perplexity": 73.52503967285156,
+        "second_half_loss": 4.269647693634033,
+        "final_step": 300,
+        "total_parameters": 30039552,
+        "trainable_parameters": 30039552
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx256_steps300_seed1337",
+      "wandb_id": "tinystories_small_attnres_ctx256_steps300_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx256_steps300_seed1337",
+      "model_size": "small",
+      "context_length": 256,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 300,
+      "steps_in_name": 300,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.215208578109741,
+        "final_perplexity": 67.70828247070312,
+        "second_half_loss": 4.182821154594421,
+        "final_step": 300,
+        "total_parameters": 30049536,
+        "trainable_parameters": 30049536
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2997362653796489,
+        "mean_early_contribution": 0.49652364539603394,
+        "mean_late_contribution": 0.2620954116185506,
+        "mean_depth_attention_entropy": 1.5359149598158324
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx128_steps200_seed1337",
+      "wandb_id": "tinystories_medium_baseline_ctx128_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx128_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 128,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.751760482788086,
+        "final_perplexity": 115.78794860839844,
+        "second_half_loss": 4.739483070373535,
+        "final_step": 200,
+        "total_parameters": 51008512,
+        "trainable_parameters": 51008512
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx128_steps200_seed1337",
+      "wandb_id": "tinystories_medium_attnres_ctx128_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx128_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 128,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.498342609405517,
+        "final_perplexity": 89.86804962158203,
+        "second_half_loss": 4.492580270767212,
+        "final_step": 200,
+        "total_parameters": 51025920,
+        "trainable_parameters": 51025920
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2461423965937951,
+        "mean_early_contribution": 0.5268958943197504,
+        "mean_late_contribution": 0.2740778122097254,
+        "mean_depth_attention_entropy": 1.7367596183629597
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx256_steps200_seed1337",
+      "wandb_id": "tinystories_medium_baseline_ctx256_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx256_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 256,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.578156518936157,
+        "final_perplexity": 97.33479309082033,
+        "second_half_loss": 4.5270843505859375,
+        "final_step": 200,
+        "total_parameters": 51074048,
+        "trainable_parameters": 51074048
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx256_steps200_seed1337",
+      "wandb_id": "tinystories_medium_attnres_ctx256_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx256_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 256,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.374828433990478,
+        "final_perplexity": 79.42620086669922,
+        "second_half_loss": 4.320406866073609,
+        "final_step": 200,
+        "total_parameters": 51091456,
+        "trainable_parameters": 51091456
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2523016657899408,
+        "mean_early_contribution": 0.5102852589916438,
+        "mean_late_contribution": 0.28414421528577805,
+        "mean_depth_attention_entropy": 1.7610544404562782
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx512_steps200_seed1337",
+      "wandb_id": "tinystories_medium_baseline_ctx512_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx512_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.432640838623047,
+        "final_perplexity": 84.15337371826172,
+        "second_half_loss": 4.374948883056641,
+        "final_step": 200,
+        "total_parameters": 51205120,
+        "trainable_parameters": 51205120
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx512_steps200_seed1337",
+      "wandb_id": "tinystories_medium_attnres_ctx512_steps200_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx512_steps200_seed1337",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 1337,
+      "step_budget": 200,
+      "steps_in_name": 200,
+      "core": {
+        "seed": 1337,
+        "final_val_loss": 4.261648321151734,
+        "final_perplexity": 70.92678833007812,
+        "second_half_loss": 4.219261264801025,
+        "final_step": 200,
+        "total_parameters": 51222528,
+        "trainable_parameters": 51222528
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.25010498876080794,
+        "mean_early_contribution": 0.5092119565233588,
+        "mean_late_contribution": 0.28755148872733116,
+        "mean_depth_attention_entropy": 1.7768294408040888
+      }
+    },
+    {
+      "run_name": "tinystories_large_baseline_ctx512_steps3000_seed42",
+      "wandb_id": "tinystories_large_baseline_ctx512_steps3000_seed42",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_large_baseline_ctx512_steps3000_seed42",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 42,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 42,
+        "final_val_loss": 2.131784439086914,
+        "final_perplexity": 8.429896354675293,
+        "second_half_loss": 2.125480616092682,
+        "final_step": 3000,
+        "total_parameters": 91559680,
+        "trainable_parameters": 91559680
+      }
+    },
+    {
+      "run_name": "tinystories_large_attnres_ctx512_steps3000_seed123",
+      "wandb_id": "tinystories_large_attnres_ctx512_steps3000_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_large_attnres_ctx512_steps3000_seed123",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 1.9775998711586,
+        "final_perplexity": 7.2253804206848145,
+        "second_half_loss": 1.9485387802124023,
+        "final_step": 3000,
+        "total_parameters": 91591680,
+        "trainable_parameters": 91591680
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.16574315518140792,
+        "mean_early_contribution": 0.34888850391447096,
+        "mean_late_contribution": 0.5201290585100651,
+        "mean_depth_attention_entropy": 2.136803698684089
+      }
+    },
+    {
+      "run_name": "tinystories_large_baseline_ctx512_steps3000_seed456",
+      "wandb_id": "tinystories_large_baseline_ctx512_steps3000_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_large_baseline_ctx512_steps3000_seed456",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 2.1449934601783753,
+        "final_perplexity": 8.541986465454102,
+        "second_half_loss": 2.138010346889496,
+        "final_step": 3000,
+        "total_parameters": 91559680,
+        "trainable_parameters": 91559680
+      }
+    },
+    {
+      "run_name": "tinystories_large_baseline_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_large_baseline_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_large_baseline_ctx512_steps3000_seed789",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 2.1268943428993223,
+        "final_perplexity": 8.388772964477539,
+        "second_half_loss": 2.126976120471954,
+        "final_step": 3000,
+        "total_parameters": 91559680,
+        "trainable_parameters": 91559680
+      }
+    },
+    {
+      "run_name": "tinystories_large_attnres_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_large_attnres_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_large_attnres_ctx512_steps3000_seed789",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 1.971286690235138,
+        "final_perplexity": 7.179908752441406,
+        "second_half_loss": 1.9491828441619872,
+        "final_step": 3000,
+        "total_parameters": 91591680,
+        "trainable_parameters": 91591680
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.16631054669618606,
+        "mean_early_contribution": 0.3628643863709537,
+        "mean_late_contribution": 0.5055621229112148,
+        "mean_depth_attention_entropy": 2.1071140847029164
+      }
+    },
+    {
+      "run_name": "tinystories_large_baseline_ctx512_steps3000_seed123_rerun1",
+      "wandb_id": "17f4k8rh",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/17f4k8rh",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 2.1461852550506593,
+        "final_perplexity": 8.552170753479004,
+        "second_half_loss": 2.1428160548210142,
+        "final_step": 3000,
+        "total_parameters": 91559680,
+        "trainable_parameters": 91559680
+      }
+    },
+    {
+      "run_name": "tinystories_large_attnres_ctx512_steps3000_seed456_rerun1",
+      "wandb_id": "e444xlsh",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/e444xlsh",
+      "model_size": "large",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 1.9783034563064577,
+        "final_perplexity": 7.230465888977051,
+        "second_half_loss": 1.9561800837516783,
+        "final_step": 3000,
+        "total_parameters": 91591680,
+        "trainable_parameters": 91591680
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.16553058609366417,
+        "mean_early_contribution": 0.38866808569218847,
+        "mean_late_contribution": 0.4805708980808656,
+        "mean_depth_attention_entropy": 2.1291286095092072
+      }
+    },
+    {
+      "run_name": "tinystories_small_baseline_ctx512_steps3000_seed123",
+      "wandb_id": "tinystories_small_baseline_ctx512_steps3000_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx512_steps3000_seed123",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 2.480041432380676,
+        "final_perplexity": 11.941760063171388,
+        "second_half_loss": 2.4852392435073853,
+        "final_step": 3000,
+        "total_parameters": 30137856,
+        "trainable_parameters": 30137856
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx512_steps3000_seed123",
+      "wandb_id": "tinystories_small_attnres_ctx512_steps3000_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx512_steps3000_seed123",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 2.3937055587768556,
+        "final_perplexity": 10.954010009765623,
+        "second_half_loss": 2.388131332397461,
+        "final_step": 3000,
+        "total_parameters": 30147840,
+        "trainable_parameters": 30147840
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.28013389672224337,
+        "mean_early_contribution": 0.3139545043062147,
+        "mean_late_contribution": 0.465900460879008,
+        "mean_depth_attention_entropy": 1.5646198302543222
+      }
+    },
+    {
+      "run_name": "tinystories_small_baseline_ctx512_steps3000_seed456",
+      "wandb_id": "tinystories_small_baseline_ctx512_steps3000_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx512_steps3000_seed456",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 2.482586669921875,
+        "final_perplexity": 11.97219181060791,
+        "second_half_loss": 2.490284824371338,
+        "final_step": 3000,
+        "total_parameters": 30137856,
+        "trainable_parameters": 30137856
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx512_steps3000_seed456",
+      "wandb_id": "tinystories_small_attnres_ctx512_steps3000_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx512_steps3000_seed456",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 2.4010962009429933,
+        "final_perplexity": 11.035265922546388,
+        "second_half_loss": 2.3988412618637085,
+        "final_step": 3000,
+        "total_parameters": 30147840,
+        "trainable_parameters": 30147840
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2821159465954854,
+        "mean_early_contribution": 0.31842962293012533,
+        "mean_late_contribution": 0.45927810420592624,
+        "mean_depth_attention_entropy": 1.573478110027141
+      }
+    },
+    {
+      "run_name": "tinystories_small_baseline_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_small_baseline_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_baseline_ctx512_steps3000_seed789",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 2.4738312005996703,
+        "final_perplexity": 11.867827415466309,
+        "second_half_loss": 2.4804704904556276,
+        "final_step": 3000,
+        "total_parameters": 30137856,
+        "trainable_parameters": 30137856
+      }
+    },
+    {
+      "run_name": "tinystories_small_attnres_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_small_attnres_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_small_attnres_ctx512_steps3000_seed789",
+      "model_size": "small",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 2.4044018268585203,
+        "final_perplexity": 11.071805000305176,
+        "second_half_loss": 2.397410249710083,
+        "final_step": 3000,
+        "total_parameters": 30147840,
+        "trainable_parameters": 30147840
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.28085647695339644,
+        "mean_early_contribution": 0.33675078851229046,
+        "mean_late_contribution": 0.44232137501239777,
+        "mean_depth_attention_entropy": 1.5428969477160046
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx512_steps3000_seed123",
+      "wandb_id": "tinystories_medium_baseline_ctx512_steps3000_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx512_steps3000_seed123",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 2.2818876266479493,
+        "final_perplexity": 9.795151710510254,
+        "second_half_loss": 2.2838747262954713,
+        "final_step": 3000,
+        "total_parameters": 51205120,
+        "trainable_parameters": 51205120
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx512_steps3000_seed123",
+      "wandb_id": "tinystories_medium_attnres_ctx512_steps3000_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx512_steps3000_seed123",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 123,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 123,
+        "final_val_loss": 2.1359838604927064,
+        "final_perplexity": 8.465372085571289,
+        "second_half_loss": 2.1215575456619264,
+        "final_step": 3000,
+        "total_parameters": 51222528,
+        "trainable_parameters": 51222528
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2214857050601174,
+        "mean_early_contribution": 0.31088380338042043,
+        "mean_late_contribution": 0.5162876239046454,
+        "mean_depth_attention_entropy": 1.7888602845042068
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx512_steps3000_seed456",
+      "wandb_id": "tinystories_medium_baseline_ctx512_steps3000_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx512_steps3000_seed456",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 2.2706092834472655,
+        "final_perplexity": 9.685300827026367,
+        "second_half_loss": 2.2778929710388183,
+        "final_step": 3000,
+        "total_parameters": 51205120,
+        "trainable_parameters": 51205120
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx512_steps3000_seed456",
+      "wandb_id": "tinystories_medium_attnres_ctx512_steps3000_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx512_steps3000_seed456",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 456,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 456,
+        "final_val_loss": 2.1259864211082458,
+        "final_perplexity": 8.381159782409668,
+        "second_half_loss": 2.113723373413086,
+        "final_step": 3000,
+        "total_parameters": 51222528,
+        "trainable_parameters": 51222528
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.2196087320061291,
+        "mean_early_contribution": 0.3613314857320802,
+        "mean_late_contribution": 0.4678342314437032,
+        "mean_depth_attention_entropy": 1.8351525527644248
+      }
+    },
+    {
+      "run_name": "tinystories_medium_baseline_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_medium_baseline_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_baseline_ctx512_steps3000_seed789",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "baseline",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 2.2800228118896486,
+        "final_perplexity": 9.776904106140137,
+        "second_half_loss": 2.280803656578064,
+        "final_step": 3000,
+        "total_parameters": 51205120,
+        "trainable_parameters": 51205120
+      }
+    },
+    {
+      "run_name": "tinystories_medium_attnres_ctx512_steps3000_seed789",
+      "wandb_id": "tinystories_medium_attnres_ctx512_steps3000_seed789",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/tinystories_medium_attnres_ctx512_steps3000_seed789",
+      "model_size": "medium",
+      "context_length": 512,
+      "architecture": "attnres",
+      "seed": 789,
+      "step_budget": 3000,
+      "steps_in_name": 3000,
+      "core": {
+        "seed": 789,
+        "final_val_loss": 2.143569564819336,
+        "final_perplexity": 8.529829978942871,
+        "second_half_loss": 2.1379398345947265,
+        "final_step": 3000,
+        "total_parameters": 51222528,
+        "trainable_parameters": 51222528
+      },
+      "depth_utilization": {
+        "mean_embedding_contribution": 0.22360502402572072,
+        "mean_early_contribution": 0.34692076298961183,
+        "mean_late_contribution": 0.4779989002272486,
+        "mean_depth_attention_entropy": 1.840920279158608
+      }
+    }
+  ],
+  "excluded_tinystories": [
+    {
+      "name": "tinystories_small_baseline_ctx128_steps2_seed1337",
+      "state": "finished",
+      "reason": "smoke"
+    },
+    {
+      "name": "tinystories_large_baseline_ctx256_steps2000_seed42",
+      "state": "finished",
+      "reason": "under_budget(2000<3000)"
+    },
+    {
+      "name": "tinystories_large_attnres_ctx256_steps2000_seed42",
+      "state": "finished",
+      "reason": "under_budget(2000<3000)"
+    },
+    {
+      "name": "tinystories_large_baseline_ctx512_steps2000_seed42",
+      "state": "crashed",
+      "reason": "crashed"
+    },
+    {
+      "name": "tinystories_large_attnres_ctx512_steps3000_seed42",
+      "state": "killed",
+      "reason": "killed"
+    },
+    {
+      "name": "tinystories_large_attnres_ctx512_steps3000_seed42_seedtest",
+      "state": "finished",
+      "reason": "smoke"
+    },
+    {
+      "name": "tinystories_large_baseline_ctx512_steps3000_seed123",
+      "state": "crashed",
+      "reason": "crashed"
+    },
+    {
+      "name": "tinystories_large_attnres_ctx512_steps3000_seed456",
+      "state": "crashed",
+      "reason": "crashed"
+    }
+  ]
+}
