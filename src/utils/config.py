@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -10,6 +11,8 @@ import yaml
 @dataclass
 class AttnResConfig:
     enabled: bool = False
+    mode: str = 'full'
+    num_blocks: Optional[int] = None
     window_size: Optional[int] = None
     temperature: float = 1.0
     rmsnorm_keys: bool = True
@@ -196,8 +199,10 @@ def _validate_cap_pair(name_a: str, value_a: Optional[int], name_b: str, value_b
 
 
 def validate_config(config: Config) -> Config:
-    if config.model.architecture not in {'baseline', 'attnres'}:
+    if config.model.architecture not in {'baseline', 'attnres', 'block_attnres'}:
         raise ValueError(f'Unsupported architecture: {config.model.architecture}')
+    if config.model.attnres.mode not in {'full', 'block'}:
+        raise ValueError('model.attnres.mode must be one of: full, block')
     if config.model.size_name not in {'small', 'medium', 'large'}:
         raise ValueError('model.size_name must be one of: small, medium, large')
     if config.model.d_model % config.model.n_heads != 0:
@@ -246,8 +251,19 @@ def validate_config(config: Config) -> Config:
             raise ValueError('evaluation.positionwise_steps values must be <= training.max_steps')
     if config.evaluation.positionwise_max_batches is not None and config.evaluation.positionwise_max_batches <= 0:
         raise ValueError('evaluation.positionwise_max_batches must be positive when set')
-    if config.model.architecture == 'attnres':
+    if config.model.architecture == 'block_attnres':
         config.model.attnres.enabled = True
+        config.model.attnres.mode = 'block'
+    elif config.model.architecture == 'attnres':
+        config.model.attnres.enabled = True
+    if config.model.attnres.enabled and config.model.attnres.mode == 'block':
+        num_blocks = config.model.attnres.num_blocks
+        if num_blocks is None or num_blocks < 1:
+            raise ValueError('model.attnres.num_blocks must be a positive integer in block mode')
+        if num_blocks > config.model.n_layers:
+            raise ValueError('model.attnres.num_blocks must be <= model.n_layers')
+        if config.model.attnres.window_size is not None:
+            warnings.warn('model.attnres.window_size is ignored in block mode (v1).')
     return config
 
 
