@@ -478,7 +478,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train a baseline or AttnRes GPT run.")
     parser.add_argument("--config", required=True, help="Path to the YAML config.")
-    parser.add_argument("--model", choices=["baseline", "attnres"], default=None)
+    parser.add_argument("--model", choices=["baseline", "attnres", "block_attnres"], default=None)
     parser.add_argument("--overrides", nargs="*", default=[], help="Optional key=value config overrides.")
     args = parser.parse_args()
 

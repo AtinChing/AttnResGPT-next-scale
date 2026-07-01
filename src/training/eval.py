@@ -165,7 +165,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate a trained baseline or AttnRes checkpoint.")
     parser.add_argument("--config", required=True, help="Path to the YAML config.")
     parser.add_argument("--checkpoint", required=True, help="Path to the checkpoint file.")
-    parser.add_argument("--model", choices=["baseline", "attnres"], default=None)
+    parser.add_argument("--model", choices=["baseline", "attnres", "block_attnres"], default=None)
     parser.add_argument("--overrides", nargs="*", default=[], help="Optional key=value config overrides.")
     parser.add_argument("--max-batches", type=int, default=None)
     args = parser.parse_args()
