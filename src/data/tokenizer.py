@@ -15,8 +15,15 @@ class TokenizerWrapper:
     def vocab_size(self) -> int:
         return int(len(self.backend))
 
+    @property
+    def eos_token_id(self) -> int | None:
+        return self.backend.eos_token_id
+
     def encode(self, text: str) -> list[int]:
         return list(self.backend(text, add_special_tokens=False)["input_ids"])
+
+    def decode(self, token_ids: list[int]) -> str:
+        return self.backend.decode(token_ids)
 
     def save(self, path: str | Path) -> None:
         Path(path).mkdir(parents=True, exist_ok=True)

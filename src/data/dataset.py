@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Optional
@@ -86,6 +87,7 @@ class StreamingTokenBlockDataset(IterableDataset[dict[str, torch.Tensor]]):
         block_size: int,
         max_examples: Optional[int],
         max_tokens: Optional[int],
+        eos_token_id: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.tokenizer = tokenizer
@@ -93,6 +95,7 @@ class StreamingTokenBlockDataset(IterableDataset[dict[str, torch.Tensor]]):
         self.block_size = block_size
         self.max_examples = max_examples
         self.max_tokens = max_tokens
+        self.eos_token_id = eos_token_id
 
     def __iter__(self) -> Iterator[dict[str, torch.Tensor]]:
         tokens_seen = 0
@@ -104,6 +107,8 @@ class StreamingTokenBlockDataset(IterableDataset[dict[str, torch.Tensor]]):
             token_ids = self.tokenizer.encode(text)
             if not token_ids:
                 continue
+            if self.eos_token_id is not None:
+                token_ids = token_ids + [self.eos_token_id]
             if self.max_tokens is not None:
                 remaining = self.max_tokens - tokens_seen
                 if remaining <= 0:
@@ -128,6 +133,36 @@ def _tinystories_text_iterator(split: str) -> Iterator[str]:
     for row in dataset:
         text = row.get("text") or row.get("story") or ""
         if text:
+            yield str(text)
+
+
+def assign_split(doc_key: str, *, val_fraction: float, hash_modulo: int) -> str:
+    """Deterministically map a document key to 'train' or 'val'.
+
+    Uses SHA-256 (not Python's salted ``hash``) so the assignment is identical
+    across processes and runs. A document key lands in exactly one split, so
+    there is zero leakage between train and validation.
+    """
+    digest = hashlib.sha256(doc_key.encode("utf-8")).hexdigest()
+    bucket = int(digest, 16) % hash_modulo
+    threshold = max(1, round(val_fraction * hash_modulo))
+    return "val" if bucket < threshold else "train"
+
+
+def _fineweb_edu_text_iterator(
+    subset: str,
+    split_role: str,
+    *,
+    val_fraction: float,
+    hash_modulo: int,
+) -> Iterator[str]:
+    dataset = load_dataset("HuggingFaceFW/fineweb-edu", name=subset, split="train", streaming=True)
+    for row in dataset:
+        text = row.get("text") or ""
+        if not text:
+            continue
+        doc_key = row.get("id") or text
+        if assign_split(str(doc_key), val_fraction=val_fraction, hash_modulo=hash_modulo) == split_role:
             yield str(text)
 
 
@@ -167,6 +202,49 @@ def build_datasets(config: Config) -> tuple[TokenizerWrapper, Dataset | Iterable
             "train_cap_examples": config.data.max_train_examples,
             "train_cap_tokens": config.data.max_train_tokens,
             "val_cap_examples": config.data.max_val_examples,
+            "val_cap_tokens": config.data.max_val_tokens,
+        }
+        return tokenizer, train_dataset, val_dataset, metadata
+
+    if config.data.dataset_type == "fineweb_edu":
+        eos_token_id = tokenizer.eos_token_id
+        train_dataset = StreamingTokenBlockDataset(
+            tokenizer,
+            text_iterator_factory=lambda: _fineweb_edu_text_iterator(
+                config.data.fineweb_subset,
+                "train",
+                val_fraction=config.data.val_fraction,
+                hash_modulo=config.data.hash_modulo,
+            ),
+            block_size=block_size,
+            max_examples=config.data.max_train_examples,
+            max_tokens=config.data.max_train_tokens,
+            eos_token_id=eos_token_id,
+        )
+        val_dataset = StreamingTokenBlockDataset(
+            tokenizer,
+            text_iterator_factory=lambda: _fineweb_edu_text_iterator(
+                config.data.fineweb_subset,
+                "val",
+                val_fraction=config.data.val_fraction,
+                hash_modulo=config.data.hash_modulo,
+            ),
+            block_size=block_size,
+            max_examples=config.data.max_val_examples,
+            max_tokens=config.data.max_val_tokens,
+            eos_token_id=eos_token_id,
+        )
+        metadata = {
+            "dataset": "HuggingFaceFW/fineweb-edu",
+            "subset": config.data.fineweb_subset,
+            "tokenizer_name": tokenizer.name,
+            "vocab_size": tokenizer.vocab_size,
+            "eos_token_id": eos_token_id,
+            "block_size": block_size,
+            "split_mechanism": "sha256(doc_id) % hash_modulo < round(val_fraction*hash_modulo) -> val",
+            "val_fraction": config.data.val_fraction,
+            "hash_modulo": config.data.hash_modulo,
+            "train_cap_tokens": config.data.max_train_tokens,
             "val_cap_tokens": config.data.max_val_tokens,
         }
         return tokenizer, train_dataset, val_dataset, metadata

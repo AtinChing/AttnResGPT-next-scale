@@ -50,6 +50,9 @@ class DataConfig:
     val_text_path: Optional[str] = None
     train_split: str = 'train'
     val_split: str = 'validation'
+    fineweb_subset: str = 'sample-10BT'
+    val_fraction: float = 0.005
+    hash_modulo: int = 1000
     block_size: int = 128
     context_lengths: Optional[list[int]] = None
     batch_size: int = 16
@@ -211,8 +214,13 @@ def validate_config(config: Config) -> Config:
         raise ValueError('data.block_size must be <= model.max_seq_len')
     if config.training.min_lr > config.training.learning_rate:
         raise ValueError('training.min_lr must be <= training.learning_rate')
-    if config.data.dataset_type not in {'tinystories', 'local_text'}:
-        raise ValueError('data.dataset_type must be one of: tinystories, local_text')
+    if config.data.dataset_type not in {'tinystories', 'local_text', 'fineweb_edu'}:
+        raise ValueError('data.dataset_type must be one of: tinystories, local_text, fineweb_edu')
+    if config.data.dataset_type == 'fineweb_edu':
+        if not 0.0 < config.data.val_fraction < 1.0:
+            raise ValueError('data.val_fraction must be in (0, 1) for fineweb_edu')
+        if config.data.hash_modulo < 2:
+            raise ValueError('data.hash_modulo must be >= 2 for fineweb_edu')
     _validate_cap_pair(
         'data.max_train_examples',
         config.data.max_train_examples,
