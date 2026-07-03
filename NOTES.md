@@ -48,12 +48,15 @@ Two variants:
 |---|-------|--------------------------|------------------------|------------------------|
 | 1 | Quality gain: AttnRes beats baseline on loss | Sweep + 48B | Our scaling ladder, baseline vs AttnRes vs Block | Yes |
 | 2 | Mechanism: learned input-dependent softmax over depth | Section 3, Eq 2-4 | Implemented in our Full + Block | Yes |
-| 3 | Bounded magnitude / stabilization (BLOCK property) | 48B, Figure 5b | Per-layer activation-norm trajectory plots, Block vs Full | Yes |
-| 4 | More uniform gradient distribution across depth | 48B, Figure 5c | Per-layer gradient-norm plots | Yes |
+| 3 | Bounded magnitude / stabilization | 48B, Figure 5b | Per-layer activation-norm trajectory plots, baseline vs Full vs Block | Yes, and refined |
+| 4 | More uniform gradient distribution across depth | 48B, Figure 5c | Per-layer gradient-norm plots, baseline vs Full vs Block | Yes |
 | 5 | 1.25x compute advantage (flagship, BLOCK) | Sweep, fitted curves | Iso-loss curve fit across our ladder; measure horizontal offset | Yes, but see scrutiny notes |
 | 6 | Downstream task transfer | 48B, Table 3 | Scale-appropriate benchmark subset on our trained models | Partial (scale-limited) |
 | 7 | Block ~8 recovers most of Full's benefit | Ablation, Figure 6 | Block-size sweep at small scale | Yes, cheap |
 | 8 | Architecture shift toward deeper-narrower | Figure 7 | Depth/width sweep at fixed compute | Yes, cheap |
+
+**Refinement to claims 3/4 (measured early, pre-training):** The original frames stabilization as a Block property (periodic reset, Figure 5b sawtooth). Our measured per-layer residual-stream norms show a more complete picture: baseline grows monotonically with depth (0.225 to 0.372, the PreNorm dilution), while BOTH Full and Block bound this growth, via different mechanisms. Full bounds it flattest via convex combination (softmax weights sum to 1; measured 0.091 to 0.062). Block bounds it in a sawtooth (grows within a block, drops at each reset). So stabilization is not exclusively a Block property; it is a property of both variants through distinct mechanisms. This is a more precise account than the original's Block-centric framing and is reproduction added value. Gradient-distribution (claim 4) still to be measured during training.
+
 
 Component ablations (Table 4), cheap and high-value to reproduce:
 - input-independent mixing hurts (1.749 vs 1.737 Full)
