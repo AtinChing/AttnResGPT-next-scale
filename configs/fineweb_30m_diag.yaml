@@ -1,0 +1,90 @@
+experiment:
+  name: fineweb_30m_diag
+  stage: config_lock
+  seed: 1337
+  deterministic: false
+  notes: "Config-lock diagnostic (NOT final results): 30M dense decoder-only on FineWeb-Edu. Hyperparameters chosen once on baseline and reused identically for baseline, Full AttnRes, and Block AttnRes. Short run to confirm clean loss descent and no instability before committing compute."
+
+data:
+  dataset_type: fineweb_edu
+  dataset_name: fineweb_edu
+  tokenizer_name: gpt2
+  fineweb_subset: sample-10BT
+  val_fraction: 0.005
+  hash_modulo: 1000
+  block_size: 1024
+  batch_size: 8            # micro-batch (sequences per forward pass)
+  eval_batch_size: 8
+  num_workers: 0
+  pin_memory: true
+  max_train_examples: null
+  max_train_tokens: null
+  max_val_examples: null
+  max_val_tokens: 500000   # cap streamed val tokens for fast periodic eval
+
+model:
+  architecture: baseline   # variant-agnostic: switch to attnres / block_attnres, nothing else changes
+  size_name: small
+  max_seq_len: 1024
+  vocab_size: 50257
+  d_model: 384
+  n_layers: 6
+  n_heads: 6
+  d_ff: 1536
+  dropout: 0.0
+  bias: true
+  tie_weights: true
+  norm_eps: 1.0e-5
+  init_std: 0.02
+  attnres:
+    enabled: false
+    mode: full
+    num_blocks: null       # set to 3 only for block_attnres runs
+    window_size: null
+    temperature: 1.0
+    rmsnorm_keys: true
+    zero_init_queries: true
+    include_embedding: true
+    keep_embedding_in_window: true
+    final_readout: true
+
+training:
+  max_steps: 500           # diagnostic length only; scale up after config is blessed
+  grad_accum_steps: 8      # 8 micro x 8 accum = 64 seqs = 65,536 tokens / optimizer step
+  learning_rate: 0.0006    # peak LR
+  min_lr: 0.00006          # cosine floor (10% of peak)
+  warmup_steps: 100        # linear warmup
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  adam_eps: 1.0e-8
+  grad_clip: 1.0
+  mixed_precision: true
+  amp_dtype: bfloat16      # Ampere RTX supports bf16
+  log_interval: 10         # log train loss every 10 steps
+  eval_interval: 100       # log val loss every 100 steps
+  checkpoint_interval: 250
+  probe_interval: 100
+  eval_max_batches: 20
+  device: auto
+  resume_from: null
+  allow_resume_mismatch: false
+
+logging:
+  output_root: outputs
+  save_probes: true
+  save_checkpoints: true
+  keep_last_k_checkpoints: 2
+
+  wandb:
+    enabled: true
+    project: attnres-next-scale
+    entity: null
+    mode: auto
+    group: config_lock
+    job_type: train
+    tags: ["config_lock", "fineweb_edu", "30m"]
+    run_name: null
+
+evaluation:
+  max_batches: 20
