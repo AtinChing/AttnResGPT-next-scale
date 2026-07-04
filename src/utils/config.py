@@ -75,6 +75,7 @@ class TrainingConfig:
     weight_decay: float = 0.1
     beta1: float = 0.9
     beta2: float = 0.95
+    adam_eps: float = 1e-8
     grad_clip: float = 1.0
     mixed_precision: bool = True
     amp_dtype: str = 'bfloat16'

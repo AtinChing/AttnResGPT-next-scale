@@ -222,6 +222,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
         model.parameters(),
         lr=config.training.learning_rate,
         betas=(config.training.beta1, config.training.beta2),
+        eps=config.training.adam_eps,
         weight_decay=config.training.weight_decay,
     )
     scheduler = build_scheduler(
@@ -434,6 +435,13 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 "seed": config.experiment.seed,
                 "parameter_count_total": counts["total"],
                 "parameter_count_trainable": counts["trainable"],
+                "precision_mode": (config.training.amp_dtype if config.training.mixed_precision else "float32"),
+                "micro_batch_size": config.data.batch_size,
+                "grad_accum_steps": config.training.grad_accum_steps,
+                "effective_batch_sequences": config.data.batch_size * config.training.grad_accum_steps,
+                "effective_batch_tokens": config.data.batch_size
+                * config.training.grad_accum_steps
+                * config.data.block_size,
                 "best_val_loss": best_val_loss,
                 "checkpoint_path": last_checkpoint_path,
                 "tokens_seen": cumulative_tokens_seen,
