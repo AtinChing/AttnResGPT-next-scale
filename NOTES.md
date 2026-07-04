@@ -133,3 +133,13 @@ NOT doing: distillation (adds a confound to a controlled architecture comparison
 - MLRC 2026: "any paper or set of papers" (single-paper is eligible). Emphasis on reproducibility, replicability, generalizability, and stress-testing. Negative/partial results explicitly welcomed.
 - Pipeline: TMLR acceptance + reproducibility certification -> light MLRC compatibility review -> presented at NeurIPS 2026 (Sydney).
 - Hard deadline: TMLR decision in the MLRC system by Sept 30 2026. Aim to submit to TMLR by end of June / early July given ~3-month review.
+
+## 10. Block count policy (Block AttnRes)
+
+Block AttnRes groups the L sublayer positions into N blocks. Moonshot found N is approximately 8 is the sweet spot: block sizes S=2,4,8 all land near optimal, while larger blocks (S=16,32) drift back toward baseline. Their 48B model used 6 layers per block, giving 9 blocks plus embedding.
+
+Policy for our ladder: hold the block count near 8 across all model sizes, adjusting layers-per-block as depth grows. Do NOT freeze a constant N at every size. Reasoning: forcing a constant N would push deeper models into the degraded large-block regime; holding N near the empirically-optimal 8 keeps every size in the same good-granularity regime, which is the fair and faithful comparison.
+
+Note on layer-counting convention: Moonshot's block_size counts attention and MLP as separate layers (block_size // 2 in their pseudocode), so one transformer layer counts as 2. Match this convention or document the difference when setting num_blocks.
+
+Diagnostic caveat: the 30M diagnostic uses num_blocks=3 (6 layers, 2 per block) purely because the model is too shallow for 8 blocks. This is a "does it train" check only. The diagnostic Block-vs-Full gap is NOT the real result, because the block count is not at its intended value. Real ladder runs target N approximately 8 where depth allows.
