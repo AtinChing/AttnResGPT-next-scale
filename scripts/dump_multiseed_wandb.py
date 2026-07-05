@@ -42,7 +42,7 @@ def _get_nested(cfg: dict, path: str, default=None):
 
 
 def _block_profile(summary: dict, prefix: str) -> dict[str, dict[str, float]]:
-    """prefix e.g. 'mean_activation_norms' or 'gradient_norms'."""
+    """Read legacy sublayer-output metrics from historical pre-fix runs."""
     pattern = re.compile(rf"^{re.escape(prefix)}/blocks\.(\d+)\.(attn|mlp)$")
     blocks: dict[int, dict[str, float]] = defaultdict(dict)
     for key, val in summary.items():
@@ -53,6 +53,16 @@ def _block_profile(summary: dict, prefix: str) -> dict[str, dict[str, float]]:
     for idx in sorted(blocks):
         ordered[f"blocks.{idx}"] = dict(sorted(blocks[idx].items()))
     return ordered
+
+
+def _layer_input_profile(summary: dict, prefix: str) -> dict[str, float]:
+    pattern = re.compile(rf"^{re.escape(prefix)}/blocks\.(\d+)$")
+    values: dict[int, float] = {}
+    for key, value in summary.items():
+        match = pattern.match(key)
+        if match and value is not None:
+            values[int(match.group(1))] = float(value)
+    return {f"blocks.{index}": values[index] for index in sorted(values)}
 
 
 def _attnres_flags(cfg: dict) -> dict[str, Any]:
@@ -127,7 +137,13 @@ def _gpt_run_record(run: Any) -> dict[str, Any] | None:
             "mean_late_contribution": _f(s, "mean_late_contribution"),
             "mean_depth_attention_entropy": _f(s, "mean_depth_attention_entropy"),
         },
-        "per_layer_profiles": {
+        "layer_input_profiles": {
+            "mean_magnitudes": _layer_input_profile(s, "mean_layer_input_magnitudes"),
+            "last_gradient_magnitudes": _layer_input_profile(
+                s, "last_layer_input_gradient_magnitudes"
+            ),
+        },
+        "legacy_sublayer_output_profiles_not_cross_variant": {
             "mean_activation_norms": _block_profile(s, "mean_activation_norms"),
             "gradient_norms": _block_profile(s, "gradient_norms"),
         },

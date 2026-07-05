@@ -1,4 +1,4 @@
-"""Pull late-training norm history for multiseed GPT runs from W&B."""
+"""Pull legacy pre-fix sublayer-output norms; do not compare them as Fig. 5b/5c."""
 from __future__ import annotations
 
 import csv

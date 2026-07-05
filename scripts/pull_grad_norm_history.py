@@ -1,4 +1,4 @@
-"""Pull W&B history for gradient norms (steps >= 2500)."""
+"""Audit legacy pre-fix W&B output-gradient history (not valid for Fig. 5c)."""
 from __future__ import annotations
 
 import json
