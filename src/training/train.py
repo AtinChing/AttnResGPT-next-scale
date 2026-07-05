@@ -347,7 +347,8 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 if probe_step:
                     logger.save_probe(step, _probe_payload(step=step, train_payload=train_payload, aux=last_aux))
 
-                if step % config.training.eval_interval == 0 or step == config.training.max_steps:
+                eval_enabled = config.training.eval_interval > 0
+                if eval_enabled and (step % config.training.eval_interval == 0 or step == config.training.max_steps):
                     val_metrics = evaluate_model(
                         model,
                         val_loader,
@@ -415,14 +416,17 @@ def train_from_config(config: Config) -> dict[str, Any]:
                         "latest_positionwise_csv_path": str(positionwise_csv_path),
                     }
 
-            final_eval = evaluate_model(
-                model,
-                val_loader,
-                device=device,
-                amp_dtype=amp_dtype,
-                max_batches=config.evaluation.max_batches or config.training.eval_max_batches,
-                collect_artifacts=True,
-            )
+            if config.training.eval_interval > 0:
+                final_eval = evaluate_model(
+                    model,
+                    val_loader,
+                    device=device,
+                    amp_dtype=amp_dtype,
+                    max_batches=config.evaluation.max_batches or config.training.eval_max_batches,
+                    collect_artifacts=True,
+                )
+            else:
+                final_eval = {}
             wandb_metadata = logger.wandb_metadata()
             summary = {
                 "run_name": identity.run_name,
