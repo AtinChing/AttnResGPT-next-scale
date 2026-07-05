@@ -81,7 +81,9 @@ def test_experiment_logger_logs_to_wandb_when_available(monkeypatch, tmp_path: P
     assert metadata['wandb_mode'] == 'offline'
     assert fake_wandb.runs[0].kwargs['project'] == 'attnres-next-scale'
 
-    logger.log_train({'step': 1, 'train_loss': 1.23, 'activation_norms': {'layer0': 0.4}, 'ignored': [1, 2]})
+    logger.log_train(
+        {'step': 1, 'train_loss': 1.23, 'layer_input_magnitudes': {'blocks.0': 0.4}, 'ignored': [1, 2]}
+    )
     logger.log_val({'step': 1, 'val_loss': 1.11, 'perplexity': 3.0})
     logger.log_positionwise(
         100,
@@ -99,7 +101,7 @@ def test_experiment_logger_logs_to_wandb_when_available(monkeypatch, tmp_path: P
             'checkpoint_path': '/tmp/checkpoint.pt',
             'mean_early_contribution': 0.33,
             'depth_attention_rows': [[0.1, 0.9]],
-            'last_gradient_norms': {'layer0': 0.2},
+            'last_layer_input_gradient_magnitudes': {'blocks.0': 0.2},
         }
     )
     logger.close(status='completed')
@@ -107,12 +109,12 @@ def test_experiment_logger_logs_to_wandb_when_available(monkeypatch, tmp_path: P
     run = fake_wandb.runs[0]
     assert run.logged[0][0] == 1
     assert run.logged[0][1]['train_loss'] == 1.23
-    assert run.logged[0][1]['activation_norms/layer0'] == 0.4
+    assert run.logged[0][1]['layer_input_magnitudes/blocks.0'] == 0.4
     assert 'ignored' not in run.logged[0][1]
     assert run.logged[2][0] == 100
     assert run.logged[2][1]['positionwise_loss/pos_0000'] == 1.0
     assert run.logged[2][1]['positionwise_eval/mean_position_loss'] == 2.0
     assert run.summary['checkpoint_path'] == '/tmp/checkpoint.pt'
-    assert run.summary['last_gradient_norms/layer0'] == 0.2
+    assert run.summary['last_layer_input_gradient_magnitudes/blocks.0'] == 0.2
     assert 'depth_attention_rows' not in run.summary
     assert run.finished is True

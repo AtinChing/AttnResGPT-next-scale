@@ -442,7 +442,7 @@ def _flatten_summary_row(summary: Mapping[str, Any]) -> dict[str, Any]:
         'val_loss',
         'perplexity',
         'second_half_loss',
-        'mean_activation_norm_last_layer',
+        'mean_layer_input_magnitude_last_layer',
         'mean_early_contribution',
         'mean_late_contribution',
         'parameter_count_total',
@@ -460,7 +460,7 @@ def _consolidated_summary_row(summary: Mapping[str, Any]) -> dict[str, Any]:
         'val_loss',
         'perplexity',
         'second_half_loss',
-        'mean_activation_norm_last_layer',
+        'mean_layer_input_magnitude_last_layer',
         'mean_early_contribution',
         'mean_late_contribution',
     )

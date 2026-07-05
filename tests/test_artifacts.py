@@ -17,7 +17,7 @@ def test_global_summary_and_paired_csvs_are_written(tmp_path: Path) -> None:
             "val_loss": 2.0,
             "perplexity": 7.0,
             "second_half_loss": 2.2,
-            "mean_activation_norm_last_layer": 1.1,
+            "mean_layer_input_magnitude_last_layer": 1.1,
             "mean_early_contribution": None,
             "mean_late_contribution": None,
         },
@@ -29,7 +29,7 @@ def test_global_summary_and_paired_csvs_are_written(tmp_path: Path) -> None:
             "val_loss": 1.9,
             "perplexity": 6.7,
             "second_half_loss": 2.0,
-            "mean_activation_norm_last_layer": 1.0,
+            "mean_layer_input_magnitude_last_layer": 1.0,
             "mean_early_contribution": 0.35,
             "mean_late_contribution": 0.44,
         },
@@ -56,7 +56,7 @@ def test_global_summary_and_paired_csvs_are_written(tmp_path: Path) -> None:
     consolidated_csv = pd.read_csv(tmp_path / "logs" / "consolidated_summary_table.csv")
     paired_csv = pd.read_csv(tmp_path / "logs" / "paired_comparisons.csv")
 
-    assert "mean_activation_norm_last_layer" in summary_csv.columns
+    assert "mean_layer_input_magnitude_last_layer" in summary_csv.columns
     assert "mean_early_contribution" in summary_csv.columns
     assert list(consolidated_csv.columns) == [
         "model",
@@ -65,7 +65,7 @@ def test_global_summary_and_paired_csvs_are_written(tmp_path: Path) -> None:
         "val_loss",
         "perplexity",
         "second_half_loss",
-        "mean_activation_norm_last_layer",
+        "mean_layer_input_magnitude_last_layer",
         "mean_early_contribution",
         "mean_late_contribution",
     ]

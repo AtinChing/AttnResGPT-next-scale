@@ -14,7 +14,7 @@ import torch
 from torch.optim import AdamW
 
 from src.data.dataset import build_dataloaders
-from src.metrics.norms import StepNormTracker, language_model_loss, perplexity_from_loss
+from src.metrics.norms import LayerInputMagnitudeTracker, language_model_loss, perplexity_from_loss
 from src.models.attnres import build_model
 from src.training.eval import evaluate_model, evaluate_positionwise_loss
 from src.utils.config import Config, load_config
@@ -233,7 +233,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
         min_lr=config.training.min_lr,
     )
     scaler = _scaler_for(device, config.training.mixed_precision, amp_dtype)
-    norm_tracker = StepNormTracker()
+    norm_tracker = LayerInputMagnitudeTracker()
     norm_tracker.register(model)
 
     start_step = 0
@@ -454,8 +454,10 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 "wandb_enabled": wandb_metadata.get("wandb_enabled"),
                 "wandb_mode": wandb_metadata.get("wandb_mode"),
                 "wandb_url": wandb_metadata.get("wandb_url"),
-                "last_gradient_norms": last_train_payload.get("gradient_norms", {}),
-                "last_activation_norms_train": last_train_payload.get("activation_norms", {}),
+                "last_layer_input_magnitudes_train": last_train_payload.get("layer_input_magnitudes", {}),
+                "last_layer_input_gradient_magnitudes": last_train_payload.get(
+                    "layer_input_gradient_magnitudes", {}
+                ),
                 **data_meta,
                 **(latest_positionwise_paths or {}),
                 **final_eval,

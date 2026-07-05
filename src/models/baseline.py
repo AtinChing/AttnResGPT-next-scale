@@ -120,10 +120,7 @@ class BaselineTransformerBlock(nn.Module):
         mlp_out = self.mlp(self.mlp_norm(x))
         x = x + mlp_out
 
-        aux: dict[str, Any] = {}
-        if return_aux:
-            aux["block_output_norm"] = float(x.detach().float().norm(dim=-1).mean().item())
-        return x, aux
+        return x, {}
 
 
 class GPTBaseline(nn.Module):
@@ -182,18 +179,14 @@ class GPTBaseline(nn.Module):
         x = x + position_embeddings
         x = self.dropout(x)
 
-        block_output_norms: list[float] = []
         for block in self.blocks:
-            x, aux = block(x, return_aux=return_aux)
-            if return_aux:
-                block_output_norms.append(aux["block_output_norm"])
+            x, _ = block(x, return_aux=return_aux)
 
         x = self.final_norm(x)
         logits = self.lm_head(x)
         aux: dict[str, Any] = {}
         if return_aux:
             aux = {
-                "block_output_norms": block_output_norms,
                 "depth_attention_rows": [],
                 "depth_source_indices": [],
             }

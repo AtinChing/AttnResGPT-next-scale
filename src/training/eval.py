@@ -10,9 +10,9 @@ import torch
 from src.data.dataset import build_dataloaders
 from src.metrics.depth_metrics import average_depth_artifacts
 from src.metrics.norms import (
-    EvalActivationAccumulator,
+    LayerInputMagnitudeTracker,
+    last_layer_input_magnitude,
     language_model_loss,
-    mean_last_layer_activation_norm,
     perplexity_from_loss,
     position_wise_language_model_loss,
     second_half_language_model_loss,
@@ -34,12 +34,11 @@ def evaluate_model(
 ) -> dict[str, Any]:
     model.eval()
     use_autocast = device.type == "cuda" and amp_dtype in {torch.float16, torch.bfloat16}
-    activation_accumulator = EvalActivationAccumulator()
-    activation_accumulator.register(model)
+    layer_input_tracker = LayerInputMagnitudeTracker()
+    layer_input_tracker.register(model)
 
     losses: list[float] = []
     second_half_losses: list[float] = []
-    block_output_norms: list[float] = []
     depth_rows_batches: list[list[torch.Tensor]] = []
     depth_source_indices_batches: list[list[list[int]]] = []
 
@@ -64,15 +63,14 @@ def evaluate_model(
             second_half_losses.append(float(second_half_loss.item()))
 
             if collect_artifacts:
-                block_output_norms.extend(aux.get("block_output_norms", []))
                 rows = aux.get("depth_attention_rows", [])
                 source_indices = aux.get("depth_source_indices", [])
                 if rows:
                     depth_rows_batches.append(rows)
                     depth_source_indices_batches.append(source_indices)
     finally:
-        activation_norms = activation_accumulator.finalize()
-        activation_accumulator.close()
+        layer_input_magnitudes = layer_input_tracker.snapshot()["layer_input_magnitudes"]
+        layer_input_tracker.close()
 
     mean_loss = sum(losses) / max(1, len(losses))
     mean_second_half_loss = sum(second_half_losses) / max(1, len(second_half_losses))
@@ -80,13 +78,9 @@ def evaluate_model(
         "val_loss": mean_loss,
         "perplexity": perplexity_from_loss(mean_loss),
         "second_half_loss": mean_second_half_loss,
-        "mean_activation_norms": activation_norms,
-        "mean_activation_norm_last_layer": mean_last_layer_activation_norm(activation_norms),
+        "mean_layer_input_magnitudes": layer_input_magnitudes,
+        "mean_layer_input_magnitude_last_layer": last_layer_input_magnitude(layer_input_magnitudes),
     }
-    if block_output_norms:
-        metrics["mean_block_output_norm"] = sum(block_output_norms) / len(block_output_norms)
-    else:
-        metrics["mean_block_output_norm"] = None
 
     metrics.update(average_depth_artifacts(depth_rows_batches, depth_source_indices_batches))
     return metrics

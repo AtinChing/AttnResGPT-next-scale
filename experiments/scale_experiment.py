@@ -133,7 +133,7 @@ def _large_summary_rows(summary_rows: list[dict[str, Any]]) -> list[dict[str, An
             "val_loss": row["val_loss"],
             "perplexity": row["perplexity"],
             "second_half_loss": row["second_half_loss"],
-            "mean_activation_norm_last_layer": row["mean_activation_norm_last_layer"],
+            "mean_layer_input_magnitude_last_layer": row["mean_layer_input_magnitude_last_layer"],
             "mean_early_contribution": row.get("mean_early_contribution"),
             "mean_late_contribution": row.get("mean_late_contribution"),
         }

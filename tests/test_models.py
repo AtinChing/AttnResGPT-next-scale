@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import torch
 
+from src.metrics.norms import LayerInputMagnitudeTracker, language_model_loss
 from src.models.attnres import DepthAttentionResidual, build_model
+from src.training.eval import evaluate_model
 from src.utils.config import AttnResConfig, ModelConfig
 from src.utils.runtime import count_parameters
 
@@ -62,8 +64,8 @@ def test_baseline_and_attnres_shapes() -> None:
 
     assert baseline_logits.shape == (2, 16, 64)
     assert attnres_logits.shape == (2, 16, 64)
-    assert len(baseline_aux["block_output_norms"]) == 2
-    assert len(attnres_aux["block_output_norms"]) == 2
+    assert "block_output_magnitudes" not in baseline_aux
+    assert "block_output_magnitudes" not in attnres_aux
     assert len(attnres_aux["depth_attention_rows"]) == 5
 
 
@@ -100,8 +102,7 @@ def test_block_attnres_shapes() -> None:
     logits, aux = model(input_ids, return_aux=True)
 
     assert logits.shape == (2, 16, 64)
-    # one stream norm per transformer layer, two mixers per layer plus final readout
-    assert len(aux["block_output_norms"]) == 4
+    assert "block_output_magnitudes" not in aux
     assert len(aux["depth_attention_rows"]) == 2 * 4 + 1
 
 
@@ -124,21 +125,6 @@ def test_block_attnres_param_count_matches_full() -> None:
     # counts must match exactly, and both exceed the baseline.
     assert block_total == full_total
     assert block_total > baseline_total
-
-
-def test_block_reset_bounds_activation_norm() -> None:
-    torch.manual_seed(0)
-    input_ids = torch.randint(0, 64, (4, 16))
-    # Two blocks of two layers each: boundaries after layer 1 and layer 3.
-    model = build_model(_make_block_config(n_layers=4, num_blocks=2))
-
-    _, aux = model(input_ids, return_aux=True)
-    norms = aux["block_output_norms"]
-
-    # Within the first block the additive stream grows.
-    assert norms[0] < norms[1]
-    # The block reset drops the accumulated magnitude at the start of block two.
-    assert norms[2] < norms[1]
 
 
 def _matched_config(architecture: str, n_layers: int = 8, num_blocks: int = 4) -> ModelConfig:
@@ -200,56 +186,127 @@ def test_block_param_count_close_to_baseline_same_depth() -> None:
     assert full_delta < 0.05
 
 
-def _stream_norms_per_layer(model, input_ids) -> list[float]:
-    """Per-layer residual-stream norm via aux; comparable for baseline and Block."""
-    model.eval()
-    with torch.no_grad():
-        _, aux = model(input_ids, return_aux=True)
-    return aux["block_output_norms"]
+def test_layer_input_magnitude_uses_same_definition_all_variants() -> None:
+    """Fig. 5b records the tensor entering each block's attention layer."""
+    input_ids = torch.randint(0, 64, (3, 32))
 
-
-def test_block_reset_bounds_stream_norm_vs_baseline_growth() -> None:
-    # n_layers=8, num_blocks=4 -> block size 2, resets after layers 1, 3, 5.
-    torch.manual_seed(0)
-    input_ids = torch.randint(0, 64, (4, 32))
-
-    torch.manual_seed(0)
-    baseline = build_model(_matched_config("baseline"))
-    torch.manual_seed(0)
-    block = build_model(_matched_config("block_attnres"))
-
-    baseline_norms = _stream_norms_per_layer(baseline, input_ids)
-    block_norms = _stream_norms_per_layer(block, input_ids)
-
-    # Baseline additive residual stream grows across depth.
-    assert baseline_norms[-1] > baseline_norms[0]
-
-    # Block resets accumulation at each internal boundary: the layer right after
-    # a boundary starts from a fresh convex combination, so its norm drops.
-    for boundary_layer in (1, 3, 5):
-        assert block_norms[boundary_layer + 1] < block_norms[boundary_layer]
-
-    # The reset keeps Block's peak stream magnitude well below where the
-    # unbounded baseline stream ends at the same depth.
-    assert max(block_norms) < baseline_norms[-1]
-
-
-def test_full_and_block_bound_growth_via_sublayer_norms() -> None:
-    # Cross-mode comparable metric: raw attn/MLP sublayer output norms (hooked on
-    # the same submodules in every mode). Baseline's residual stream grows, while
-    # Full and Block keep per-layer magnitudes flat/bounded across depth.
-    torch.manual_seed(0)
-    input_ids = torch.randint(0, 64, (4, 32))
-
-    def last_over_first_stream_ratio(architecture: str) -> float:
+    for architecture in ("baseline", "attnres", "block_attnres"):
         torch.manual_seed(0)
         model = build_model(_matched_config(architecture))
-        norms = _stream_norms_per_layer(model, input_ids)
-        return norms[-1] / norms[0]
+        observed_inputs: dict[str, torch.Tensor] = {}
+        reference_handles = []
+        for layer_index, block in enumerate(model.blocks):
+            site = f"blocks.{layer_index}"
+            reference_handles.append(
+                block.attn_norm.register_forward_pre_hook(
+                    lambda _module, inputs, site=site: observed_inputs.__setitem__(site, inputs[0].detach())
+                )
+            )
 
-    baseline_ratio = last_over_first_stream_ratio("baseline")
-    full_ratio = last_over_first_stream_ratio("attnres")
+        tracker = LayerInputMagnitudeTracker()
+        tracker.register(model)
+        try:
+            model.eval()
+            with torch.no_grad():
+                _, aux = model(input_ids, return_aux=True)
+            magnitudes = tracker.snapshot()["layer_input_magnitudes"]
+        finally:
+            tracker.close()
+            for handle in reference_handles:
+                handle.remove()
 
-    # Baseline stream expands across depth; Full stays bounded (ratio near/below 1).
-    assert baseline_ratio > 1.2
-    assert full_ratio < baseline_ratio
+        expected_keys = {f"blocks.{i}" for i in range(model.config.n_layers)}
+        assert set(magnitudes) == set(observed_inputs) == expected_keys
+        assert "block_output_magnitudes" not in aux
+        for site, layer_input in observed_inputs.items():
+            expected = float(layer_input.float().norm(dim=-1).mean().item())
+            assert abs(magnitudes[site] - expected) < 1e-5
+
+
+def test_layer_input_gradient_magnitude_uses_same_definition_all_variants() -> None:
+    """Fig. 5c records ``dL/dh_l`` at the same layer-input sites as Fig. 5b."""
+    input_ids = torch.randint(0, 64, (3, 32))
+    targets = torch.randint(0, 64, (3, 32))
+
+    key_sets = {}
+    for architecture in ("baseline", "attnres", "block_attnres"):
+        torch.manual_seed(0)
+        model = build_model(_matched_config(architecture))
+        observed_inputs: dict[str, torch.Tensor] = {}
+        reference_handles = []
+        for layer_index, block in enumerate(model.blocks):
+            site = f"blocks.{layer_index}"
+
+            def retain_layer_input(_module, inputs, *, site=site):
+                inputs[0].retain_grad()
+                observed_inputs[site] = inputs[0]
+
+            reference_handles.append(block.attn_norm.register_forward_pre_hook(retain_layer_input))
+
+        tracker = LayerInputMagnitudeTracker()
+        tracker.register(model)
+        try:
+            model.train()
+            tracker.reset_step()
+            logits, _ = model(input_ids, return_aux=False)
+            language_model_loss(logits, targets).backward()
+            snapshot = tracker.snapshot()
+            input_magnitudes = snapshot["layer_input_magnitudes"]
+            gradient_magnitudes = snapshot["layer_input_gradient_magnitudes"]
+        finally:
+            tracker.close()
+            for handle in reference_handles:
+                handle.remove()
+
+        expected_keys = {f"blocks.{i}" for i in range(model.config.n_layers)}
+        assert set(input_magnitudes) == set(gradient_magnitudes) == expected_keys
+        assert all(value >= 0.0 for value in gradient_magnitudes.values())
+        for site, layer_input in observed_inputs.items():
+            expected = float(layer_input.grad.detach().float().norm(dim=-1).mean().item())
+            assert abs(gradient_magnitudes[site] - expected) < 1e-5
+        key_sets[architecture] = set(gradient_magnitudes)
+
+    # Identical measurement surface across all three variants.
+    assert key_sets["baseline"] == key_sets["attnres"] == key_sets["block_attnres"]
+
+
+def test_eval_averages_and_preserves_layer_input_curve() -> None:
+    model = build_model(_matched_config("block_attnres", n_layers=4, num_blocks=2))
+    batches = [
+        {
+            "input_ids": torch.randint(0, 64, (2, 32)),
+            "targets": torch.randint(0, 64, (2, 32)),
+        }
+        for _ in range(2)
+    ]
+    observed: dict[str, list[float]] = {f"blocks.{i}": [] for i in range(model.config.n_layers)}
+    handles = []
+    for layer_index, block in enumerate(model.blocks):
+        site = f"blocks.{layer_index}"
+
+        def record_layer_input(_module, inputs, *, site=site):
+            value = inputs[0].detach().float().norm(dim=-1).mean().item()
+            observed[site].append(float(value))
+
+        handles.append(block.attn_norm.register_forward_pre_hook(record_layer_input))
+
+    try:
+        metrics = evaluate_model(
+            model,
+            batches,
+            device=torch.device("cpu"),
+            amp_dtype=torch.float32,
+            collect_artifacts=True,
+        )
+    finally:
+        for handle in handles:
+            handle.remove()
+
+    curve = metrics["mean_layer_input_magnitudes"]
+    assert list(curve) == [f"blocks.{i}" for i in range(model.config.n_layers)]
+    for site, values in observed.items():
+        assert len(values) == len(batches)
+        assert abs(curve[site] - sum(values) / len(values)) < 1e-5
+    assert metrics["mean_layer_input_magnitude_last_layer"] == curve["blocks.3"]
+    assert "mean_block_output_magnitude" not in metrics
+    assert "mean_activation_norms" not in metrics

@@ -128,7 +128,6 @@ class AttnResTransformerBlock(nn.Module):
         aux: dict[str, Any] = {}
         if return_aux:
             aux = {
-                "block_output_norm": float(mlp_out.detach().float().norm(dim=-1).mean().item()),
                 "depth_attention": [
                     {"name": f"block_{self.layer_index:02d}_pre_attn", **attn_stats},
                     {"name": f"block_{self.layer_index:02d}_pre_mlp", **mlp_stats},
@@ -216,14 +215,12 @@ class GPTAttnRes(nn.Module):
         x0 = self.dropout(x0)
         history: list[torch.Tensor] = [x0]
 
-        block_output_norms: list[float] = []
         depth_rows: list[torch.Tensor] = []
         depth_source_indices: list[list[int]] = []
 
         for block in self.blocks:
             history, block_aux = block(history, return_aux=return_aux)
             if return_aux:
-                block_output_norms.append(block_aux["block_output_norm"])
                 for row in block_aux["depth_attention"]:
                     depth_rows.append(row["mean_weights"])
                     depth_source_indices.append(row["source_indices"])
@@ -242,7 +239,6 @@ class GPTAttnRes(nn.Module):
         aux: dict[str, Any] = {}
         if return_aux:
             aux = {
-                "block_output_norms": block_output_norms,
                 "depth_attention_rows": depth_rows,
                 "depth_source_indices": depth_source_indices,
                 **contribution_breakdown(depth_rows, depth_source_indices),
@@ -334,7 +330,6 @@ class BlockAttnResTransformerBlock(nn.Module):
         aux: dict[str, Any] = {}
         if return_aux:
             aux = {
-                "block_output_norm": float(partial.detach().float().norm(dim=-1).mean().item()),
                 "depth_attention": [
                     {"name": f"block_{self.layer_index:02d}_pre_attn", **attn_stats},
                     {"name": f"block_{self.layer_index:02d}_pre_mlp", **mlp_stats},
@@ -433,14 +428,12 @@ class GPTBlockAttnRes(nn.Module):
         blocks: list[torch.Tensor] = [x0]
         partial: torch.Tensor | None = None
 
-        block_output_norms: list[float] = []
         depth_rows: list[torch.Tensor] = []
         depth_source_indices: list[list[int]] = []
 
         for layer_index, block in enumerate(self.blocks):
             partial, block_aux = block(blocks, partial, return_aux=return_aux)
             if return_aux:
-                block_output_norms.append(block_aux["block_output_norm"])
                 for row in block_aux["depth_attention"]:
                     depth_rows.append(row["mean_weights"])
                     depth_source_indices.append(row["source_indices"])
@@ -462,7 +455,6 @@ class GPTBlockAttnRes(nn.Module):
         aux: dict[str, Any] = {}
         if return_aux:
             aux = {
-                "block_output_norms": block_output_norms,
                 "depth_attention_rows": depth_rows,
                 "depth_source_indices": depth_source_indices,
                 **contribution_breakdown(depth_rows, depth_source_indices),
