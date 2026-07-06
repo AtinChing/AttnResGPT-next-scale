@@ -75,7 +75,9 @@ def _parse_step(path: Path) -> int:
     stem = path.stem
     if not stem.startswith("step_"):
         raise ValueError(f"Unexpected checkpoint name: {path.name}")
-    return int(stem.removeprefix("step_"))
+    # Local saves: step_0002290.pt. WandB artifact pulls: step_0002290-002.pt.
+    step_token = stem.removeprefix("step_").split("-", 1)[0]
+    return int(step_token)
 
 
 def discover_checkpoints(checkpoint_dir: Path, *, latest_only: bool) -> list[CheckpointRef]:
