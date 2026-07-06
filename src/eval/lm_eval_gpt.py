@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from lm_eval import utils as lm_eval_utils
 from lm_eval.api.model import TemplateLM
+from lm_eval.models.utils import Collator
 from lm_eval.models.utils_hf import pad_and_concat
 
 from src.data.tokenizer import build_tokenizer
@@ -124,11 +125,10 @@ class AttnResGPTLM(TemplateLM):
             context_enc, continuation_enc = req[1], req[2]
             return -(len(context_enc) + len(continuation_enc)), tuple(context_enc + continuation_enc)
 
-        requests = sorted(requests, key=_collate)
-        chunks = [
-            requests[index : index + batch_size]
-            for index in range(0, len(requests), batch_size)
-        ]
+        # Sort for efficient batching, then restore the caller's request order.
+        # Without get_original(), multi-task harness runs assign scores to the wrong examples.
+        re_ord = Collator(requests, sort_fn=_collate)
+        chunks = re_ord.get_batched(n=batch_size)
 
         pbar = tqdm(
             total=len(requests),
@@ -141,7 +141,7 @@ class AttnResGPTLM(TemplateLM):
             inplens: list[int] = []
             padding_len_inp: int | None = None
 
-            for _, context_enc, continuation_enc in chunk:
+            for _request_pair, context_enc, continuation_enc in chunk:
                 assert context_enc and continuation_enc
                 total_length = len(context_enc) + len(continuation_enc)
                 if total_length > self.max_length + 1:
@@ -162,7 +162,7 @@ class AttnResGPTLM(TemplateLM):
             batched_inps = pad_and_concat(padding_len_inp, inps, padding_side="right")
             multi_logits = F.log_softmax(self._model_call(batched_inps), dim=-1)
 
-            for (_, _, _), logits_row, inplen, cont_toks in zip(
+            for _request_pair, logits_row, inplen, cont_toks in zip(
                 chunk,
                 multi_logits,
                 inplens,
@@ -184,7 +184,7 @@ class AttnResGPTLM(TemplateLM):
                 pbar.update(1)
 
         pbar.close()
-        return res
+        return re_ord.get_original(res)
 
     def loglikelihood_rolling(
         self,
