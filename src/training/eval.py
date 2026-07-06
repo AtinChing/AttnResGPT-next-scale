@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Any, Optional
@@ -155,6 +156,18 @@ def load_checkpoint_model(config: Config, checkpoint_path: str | Path, device: t
     return model
 
 
+def write_json_output(path: str | Path, payload: dict[str, Any]) -> None:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.suffix == ".jsonl":
+        with output_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+        return
+    with output_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate a trained baseline or AttnRes checkpoint.")
     parser.add_argument("--config", required=True, help="Path to the YAML config.")
@@ -162,6 +175,11 @@ def main() -> None:
     parser.add_argument("--model", choices=["baseline", "attnres", "block_attnres"], default=None)
     parser.add_argument("--overrides", nargs="*", default=[], help="Optional key=value config overrides.")
     parser.add_argument("--max-batches", type=int, default=None)
+    parser.add_argument(
+        "--output-json",
+        default=None,
+        help="Optional output path. Appends JSONL when the suffix is .jsonl; otherwise writes one JSON file.",
+    )
     args = parser.parse_args()
 
     overrides = list(args.overrides)
@@ -175,17 +193,21 @@ def main() -> None:
     device = get_device(config.training.device)
     amp_dtype = amp_dtype_from_string(config.training.amp_dtype)
     model = load_checkpoint_model(config, args.checkpoint, device)
+    max_batches = args.max_batches or config.evaluation.max_batches
     metrics = evaluate_model(
         model,
         val_loader,
         device=device,
         amp_dtype=amp_dtype,
-        max_batches=args.max_batches or config.evaluation.max_batches,
+        max_batches=max_batches,
         collect_artifacts=True,
     )
     counts = count_parameters(model)
 
     summary = {
+        "checkpoint_path": str(Path(args.checkpoint)),
+        "config_path": str(Path(args.config)),
+        "max_batches": max_batches,
         "model": config.model.architecture,
         "size": config.model.size_name,
         "context": config.data.block_size,
@@ -197,6 +219,9 @@ def main() -> None:
     }
     for key, value in summary.items():
         print(f"{key}: {value}")
+    if args.output_json is not None:
+        write_json_output(args.output_json, summary)
+        print(f"wrote_json: {args.output_json}")
 
 
 if __name__ == "__main__":
