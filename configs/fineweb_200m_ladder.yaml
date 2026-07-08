@@ -1,0 +1,91 @@
+experiment:
+  name: fineweb_200m_ladder
+  stage: scaling_ladder
+  seed: 1337
+  deterministic: false
+  notes: "Scaling-ladder point (~200M): Moonshot Table 2 proportions (d/L ~73.1). Block AttnRes uses num_blocks=8 with remainder in final block [1,1,1,1,1,1,1,7]. ~5 tokens/param training budget (1.14B tokens)."
+
+data:
+  dataset_type: fineweb_edu
+  dataset_name: fineweb_edu
+  tokenizer_name: gpt2
+  fineweb_subset: sample-10BT
+  val_fraction: 0.005
+  hash_modulo: 1000
+  block_size: 1024
+  batch_size: 8
+  eval_batch_size: 8
+  num_workers: 0
+  pin_memory: true
+  max_train_examples: null
+  max_train_tokens: null
+  max_val_examples: null
+  max_val_tokens: null
+
+model:
+  architecture: baseline
+  size_name: medium
+  max_seq_len: 1024
+  vocab_size: 50257
+  d_model: 1024
+  n_layers: 14
+  n_heads: 16
+  d_ff: 4096
+  dropout: 0.0
+  bias: true
+  tie_weights: true
+  norm_eps: 1.0e-5
+  init_std: 0.02
+  attnres:
+    enabled: false
+    mode: full
+    num_blocks: 8           # Block AttnRes: remainder in final block [1,1,1,1,1,1,1,7]
+    window_size: null
+    temperature: 1.0
+    rmsnorm_keys: true
+    zero_init_queries: true
+    include_embedding: true
+    keep_embedding_in_window: true
+    final_readout: true
+
+training:
+  max_steps: 17458        # 17458 * 65,536 = 1.14B tokens (~5 tokens/param at 228.8M params)
+  grad_accum_steps: 8      # 8 micro x 8 accum = 64 seqs = 65,536 tokens / step
+  learning_rate: 0.0006
+  min_lr: 0.00006
+  warmup_steps: 349        # ~2% of horizon
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  adam_eps: 1.0e-8
+  grad_clip: 1.0
+  mixed_precision: true
+  amp_dtype: bfloat16
+  log_interval: 20
+  eval_interval: 100
+  checkpoint_interval: 763 # 763 * 65,536 = 50.0M tokens
+  probe_interval: 100000   # effectively off
+  eval_max_batches: 50
+  device: auto
+  resume_from: null
+  allow_resume_mismatch: false
+
+logging:
+  output_root: outputs
+  save_probes: false
+  save_checkpoints: true
+  keep_last_k_checkpoints: 20
+
+  wandb:
+    enabled: true
+    project: attnres-next-scale
+    entity: null
+    mode: auto
+    group: scaling_ladder
+    job_type: train
+    tags: ["scaling_ladder", "fineweb_edu", "200m", "moonshot_shape"]
+    run_name: null
+
+evaluation:
+  max_batches: 50
+  positionwise_steps: []
