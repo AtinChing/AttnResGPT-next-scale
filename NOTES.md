@@ -143,3 +143,8 @@ Policy for our ladder: hold the block count near 8 across all model sizes, adjus
 Note on layer-counting convention: Moonshot's block_size counts attention and MLP as separate layers (block_size // 2 in their pseudocode), so one transformer layer counts as 2. Match this convention or document the difference when setting num_blocks.
 
 Diagnostic caveat: the 30M diagnostic uses num_blocks=3 (6 layers, 2 per block) purely because the model is too shallow for 8 blocks. This is a "does it train" check only. The diagnostic Block-vs-Full gap is NOT the real result, because the block count is not at its intended value. Real ladder runs target N approximately 8 where depth allows.
+
+## 11. Our approach to claim 5 (8 block fix)
+From Table 2, their sweep models had 12, 13, 14, 16, 17 transformer blocks. With ~8 blocks target, the actual blocks-per-model would vary slightly (since those don't all divide by 8 evenly). The paper says "~8 blocks" and "we fix the number of blocks to ≈8" but does not give a precise per-model block count or an error bar on it. Essentially they state approximately 8 and don't specify the exact variation. It's loose in the paper.
+
+Since they were imprecise about exact block counts per sweep model, we use num_blocks=8 for ladder points wherever depth allows, with the final block absorbing any remainder. Its cleaner and more controlled than their reported setup. Then we state that as a fidelity improvement: "the original used approximately 8 blocks without specifying per-model counts; we fix num_blocks=8 across ladder sizes for a controlled comparison." That's a defensible, maybe superior, methodological choice, and it's the kind of precision-where-the-original-was-vague that reviewers like in a reproduction (according to Claude).
