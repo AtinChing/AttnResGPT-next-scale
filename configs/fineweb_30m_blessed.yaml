@@ -39,7 +39,7 @@ model:
   attnres:
     enabled: false
     mode: full
-    num_blocks: null
+    num_blocks: 3           # Block AttnRes: 2 transformer layers/block (6 layers / 3 blocks)
     window_size: null
     temperature: 1.0
     rmsnorm_keys: true
