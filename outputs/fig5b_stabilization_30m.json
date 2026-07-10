@@ -1,0 +1,495 @@
+{
+  "figure": "Fig. 5b stabilization \u2014 per-layer input magnitude $\\|h_l\\|$",
+  "model": "fineweb_edu_small / blessed 30M",
+  "n_layers": 6,
+  "seeds": [
+    123,
+    456,
+    1337
+  ],
+  "source": "W&B summary mean_layer_input_magnitudes/* from final eval (averaged over eval batches)",
+  "metric": "mean over tokens of L2 norm of pre-attention RMSNorm input (h_l)",
+  "aggregation": "mean \u00b1 sample std across seeds 123/456/1337",
+  "variants": {
+    "baseline": {
+      "label": "Baseline",
+      "seeds": [
+        123,
+        456,
+        1337
+      ],
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean": [
+        0.917393,
+        10.622667,
+        12.696133,
+        17.237866,
+        11.534366,
+        11.591338
+      ],
+      "std": [
+        0.002577,
+        0.896602,
+        0.185383,
+        2.189048,
+        0.592119,
+        0.498857
+      ],
+      "per_seed": {
+        "123": [
+          0.91819,
+          9.710691,
+          12.535274,
+          19.522097,
+          11.681893,
+          11.141652
+        ],
+        "456": [
+          0.919478,
+          11.50306,
+          12.654251,
+          15.158389,
+          10.882431,
+          11.504421
+        ],
+        "1337": [
+          0.914512,
+          10.654249,
+          12.898874,
+          17.033111,
+          12.038773,
+          12.127942
+        ]
+      },
+      "val_loss_mean": 4.792163
+    },
+    "full": {
+      "label": "Full AttnRes",
+      "seeds": [
+        123,
+        456,
+        1337
+      ],
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean": [
+        0.911354,
+        5.057321,
+        3.413021,
+        3.676143,
+        2.2396,
+        1.713204
+      ],
+      "std": [
+        0.001236,
+        2.958375,
+        0.72996,
+        0.8302,
+        0.494621,
+        0.07257
+      ],
+      "per_seed": {
+        "123": [
+          0.909987,
+          8.467082,
+          4.188746,
+          4.541836,
+          1.943719,
+          1.630537
+        ],
+        "456": [
+          0.911686,
+          3.173201,
+          2.739625,
+          3.599896,
+          2.810614,
+          1.742662
+        ],
+        "1337": [
+          0.91239,
+          3.531678,
+          3.310692,
+          2.886697,
+          1.964467,
+          1.766413
+        ]
+      },
+      "val_loss_mean": 4.607814
+    },
+    "block": {
+      "label": "Block AttnRes",
+      "seeds": [
+        123,
+        456,
+        1337
+      ],
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean": [
+        0.919158,
+        8.379091,
+        9.31573,
+        3.74747,
+        4.92504,
+        4.649733
+      ],
+      "std": [
+        0.000429,
+        0.454198,
+        1.099425,
+        0.283675,
+        0.211835,
+        0.404522
+      ],
+      "per_seed": {
+        "123": [
+          0.918933,
+          8.009343,
+          9.142614,
+          4.07378,
+          4.681036,
+          4.195991
+        ],
+        "456": [
+          0.919653,
+          8.886083,
+          8.313133,
+          3.559566,
+          5.032179,
+          4.97266
+        ],
+        "1337": [
+          0.918889,
+          8.241846,
+          10.491444,
+          3.609064,
+          5.061904,
+          4.780547
+        ]
+      },
+      "val_loss_mean": 4.638495
+    }
+  },
+  "runs": [
+    {
+      "variant": "baseline",
+      "architecture": "baseline",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed123",
+      "wandb_id": "fineweb_edu_small_baseline_ctx1024_steps2289_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_baseline_ctx1024_steps2289_seed123",
+      "val_loss": 4.775290880203247,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9181895077228546,
+        "blocks.1": 9.710691089630126,
+        "blocks.2": 12.535273513793946,
+        "blocks.3": 19.522096862792967,
+        "blocks.4": 11.681893291473388,
+        "blocks.5": 11.141651821136474
+      },
+      "curve": [
+        0.9181895077228546,
+        9.710691089630126,
+        12.535273513793946,
+        19.522096862792967,
+        11.681893291473388,
+        11.141651821136474
+      ]
+    },
+    {
+      "variant": "baseline",
+      "architecture": "baseline",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed456",
+      "wandb_id": "fineweb_edu_small_baseline_ctx1024_steps2289_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_baseline_ctx1024_steps2289_seed456",
+      "val_loss": 4.795634031295776,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9194781637191772,
+        "blocks.1": 11.503059558868408,
+        "blocks.2": 12.654251155853272,
+        "blocks.3": 15.158388671875,
+        "blocks.4": 10.882430667877196,
+        "blocks.5": 11.504420547485353
+      },
+      "curve": [
+        0.9194781637191772,
+        11.503059558868408,
+        12.654251155853272,
+        15.158388671875,
+        10.882430667877196,
+        11.504420547485353
+      ]
+    },
+    {
+      "variant": "baseline",
+      "architecture": "baseline",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed1337",
+      "wandb_id": "fineweb_edu_small_baseline_ctx1024_steps2289_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_baseline_ctx1024_steps2289_seed1337",
+      "val_loss": 4.805564174652099,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9145116746425628,
+        "blocks.1": 10.654249382019042,
+        "blocks.2": 12.8988743019104,
+        "blocks.3": 17.033111267089843,
+        "blocks.4": 12.03877290725708,
+        "blocks.5": 12.127941513061524
+      },
+      "curve": [
+        0.9145116746425628,
+        10.654249382019042,
+        12.8988743019104,
+        17.033111267089843,
+        12.03877290725708,
+        12.127941513061524
+      ]
+    },
+    {
+      "variant": "block",
+      "architecture": "block_attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed123",
+      "wandb_id": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_block_attnres_ctx1024_steps2289_seed123",
+      "val_loss": 4.614427604675293,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9189334213733672,
+        "blocks.1": 8.009342927932739,
+        "blocks.2": 9.142614192962649,
+        "blocks.3": 4.073780040740967,
+        "blocks.4": 4.681036405563354,
+        "blocks.5": 4.195991497039795
+      },
+      "curve": [
+        0.9189334213733672,
+        8.009342927932739,
+        9.142614192962649,
+        4.073780040740967,
+        4.681036405563354,
+        4.195991497039795
+      ]
+    },
+    {
+      "variant": "block",
+      "architecture": "block_attnres",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed456",
+      "wandb_id": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_block_attnres_ctx1024_steps2289_seed456",
+      "val_loss": 4.646630544662475,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.91965322971344,
+        "blocks.1": 8.88608320236206,
+        "blocks.2": 8.31313325881958,
+        "blocks.3": 3.559565739631653,
+        "blocks.4": 5.032178611755371,
+        "blocks.5": 4.972659902572632
+      },
+      "curve": [
+        0.91965322971344,
+        8.88608320236206,
+        8.31313325881958,
+        3.559565739631653,
+        5.032178611755371,
+        4.972659902572632
+      ]
+    },
+    {
+      "variant": "block",
+      "architecture": "block_attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed1337",
+      "wandb_id": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_block_attnres_ctx1024_steps2289_seed1337",
+      "val_loss": 4.654426612854004,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9188886058330537,
+        "blocks.1": 8.241845607757568,
+        "blocks.2": 10.491443729400634,
+        "blocks.3": 3.609063673019409,
+        "blocks.4": 5.061903982162476,
+        "blocks.5": 4.780546941757202
+      },
+      "curve": [
+        0.9188886058330537,
+        8.241845607757568,
+        10.491443729400634,
+        3.609063673019409,
+        5.061903982162476,
+        4.780546941757202
+      ]
+    },
+    {
+      "variant": "full",
+      "architecture": "attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed123",
+      "wandb_id": "fineweb_edu_small_attnres_ctx1024_steps2289_seed123",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_attnres_ctx1024_steps2289_seed123",
+      "val_loss": 4.621557302474976,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9099867665767668,
+        "blocks.1": 8.467082366943359,
+        "blocks.2": 4.188746118545533,
+        "blocks.3": 4.541836433410644,
+        "blocks.4": 1.9437191224098205,
+        "blocks.5": 1.6305374169349671
+      },
+      "curve": [
+        0.9099867665767668,
+        8.467082366943359,
+        4.188746118545533,
+        4.541836433410644,
+        1.9437191224098205,
+        1.6305374169349671
+      ]
+    },
+    {
+      "variant": "full",
+      "architecture": "attnres",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed456",
+      "wandb_id": "fineweb_edu_small_attnres_ctx1024_steps2289_seed456",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_attnres_ctx1024_steps2289_seed456",
+      "val_loss": 4.643037614822387,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9116863703727722,
+        "blocks.1": 3.173200740814209,
+        "blocks.2": 2.739624762535095,
+        "blocks.3": 3.599896411895752,
+        "blocks.4": 2.810613889694214,
+        "blocks.5": 1.742662289142609
+      },
+      "curve": [
+        0.9116863703727722,
+        3.173200740814209,
+        2.739624762535095,
+        3.599896411895752,
+        2.810613889694214,
+        1.742662289142609
+      ]
+    },
+    {
+      "variant": "full",
+      "architecture": "attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed1337",
+      "wandb_id": "fineweb_edu_small_attnres_ctx1024_steps2289_seed1337",
+      "wandb_url": "https://wandb.ai/atin5551-uc-davis/attnres-next-scale/runs/fineweb_edu_small_attnres_ctx1024_steps2289_seed1337",
+      "val_loss": 4.558848314285278,
+      "layers": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "mean_layer_input_magnitudes": {
+        "blocks.0": 0.9123903536796568,
+        "blocks.1": 3.531678490638733,
+        "blocks.2": 3.310692381858826,
+        "blocks.3": 2.8866971015930174,
+        "blocks.4": 1.9644667649269103,
+        "blocks.5": 1.7664134526252746
+      },
+      "curve": [
+        0.9123903536796568,
+        3.531678490638733,
+        3.310692381858826,
+        2.8866971015930174,
+        1.9644667649269103,
+        1.7664134526252746
+      ]
+    }
+  ],
+  "plot_paths": {
+    "png": "outputs/plots/fig5b_stabilization_30m.png",
+    "pdf": "outputs/plots/fig5b_stabilization_30m.pdf"
+  }
+}
