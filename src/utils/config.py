@@ -83,6 +83,9 @@ class TrainingConfig:
     eval_interval: int = 100
     checkpoint_interval: int = 100
     probe_interval: int = 100
+    # Optional stdout step progress (off by default; W&B/file logging is separate).
+    console_step_tracking: bool = False
+    console_step_interval: int = 1
     eval_max_batches: Optional[int] = 10
     device: str = 'auto'
     resume_from: Optional[str] = None
@@ -215,6 +218,8 @@ def validate_config(config: Config) -> Config:
         raise ValueError('data.block_size must be <= model.max_seq_len')
     if config.training.min_lr > config.training.learning_rate:
         raise ValueError('training.min_lr must be <= training.learning_rate')
+    if config.training.console_step_interval <= 0:
+        raise ValueError('training.console_step_interval must be positive')
     if config.data.dataset_type not in {'tinystories', 'local_text', 'fineweb_edu'}:
         raise ValueError('data.dataset_type must be one of: tinystories, local_text, fineweb_edu')
     if config.data.dataset_type == 'fineweb_edu':

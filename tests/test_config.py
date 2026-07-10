@@ -29,3 +29,16 @@ def test_positionwise_steps_must_fit_within_training_budget() -> None:
     config.evaluation.positionwise_steps = [50, 150]
     with pytest.raises(ValueError):
         validate_config(config)
+
+
+def test_console_step_tracking_defaults_off() -> None:
+    config = validate_config(Config())
+    assert config.training.console_step_tracking is False
+    assert config.training.console_step_interval == 1
+
+
+def test_console_step_interval_must_be_positive() -> None:
+    config = Config()
+    config.training.console_step_interval = 0
+    with pytest.raises(ValueError):
+        validate_config(config)

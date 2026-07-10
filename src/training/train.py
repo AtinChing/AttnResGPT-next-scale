@@ -344,6 +344,17 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 if step % config.training.log_interval == 0 or step == 1:
                     logger.log_train(train_payload)
 
+                if config.training.console_step_tracking and (
+                    step == 1 or step % config.training.console_step_interval == 0
+                ):
+                    print(
+                        f"step {step}/{config.training.max_steps} "
+                        f"loss={train_payload['train_loss']:.4f} "
+                        f"tok/s={train_payload['tokens_per_sec']:.0f} "
+                        f"elapsed={train_payload['elapsed_time_sec']:.1f}s",
+                        flush=True,
+                    )
+
                 if probe_step:
                     logger.save_probe(step, _probe_payload(step=step, train_payload=train_payload, aux=last_aux))
 
