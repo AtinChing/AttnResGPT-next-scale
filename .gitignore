@@ -41,6 +41,7 @@ outputs/wandb_recovery/
 wandb_export_*.csv
 wandb_export_*.xls
 scripts/_wandb_runs.json
+scripts/_wandb_dump.py
 
 # Model/data archives
 *.zip
