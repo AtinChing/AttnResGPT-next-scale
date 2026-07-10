@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
 import torch
@@ -249,22 +248,21 @@ class GPTAttnRes(nn.Module):
 def _block_sizes(n_layers: int, num_blocks: int) -> list[int]:
     """Partition transformer layers into ``num_blocks`` contiguous blocks.
 
-    Each block holds ``n_layers // num_blocks`` transformer layers and the final
-    block absorbs any remainder, matching the paper ("the last block contains the
-    remaining L mod N layers"). Counting note: ``num_blocks`` partitions
-    transformer layers, and each transformer layer is two sublayers (attention +
-    MLP), so the paper's sublayer-level ``block_size`` equals ``2 * (n_layers //
-    num_blocks)``.
+    Layers are split as evenly as possible: the first ``n_layers % num_blocks``
+    blocks get one extra layer, so sizes differ by at most 1. This is a deliberate
+    departure from the paper's "remainder in the last block" wording, which can
+    produce a single oversized final block (e.g. 12 layers / 8 blocks as
+    ``[1,1,1,1,1,1,1,5]``). Counting note: ``num_blocks`` partitions transformer
+    layers, and each transformer layer is two sublayers (attention + MLP), so the
+    paper's sublayer-level ``block_size`` equals ``2 * (n_layers // num_blocks)``
+    when the split is even.
     """
-    layers_per_block = n_layers // num_blocks
-    remainder = n_layers % num_blocks
-    sizes = [layers_per_block] * (num_blocks - 1) + [layers_per_block + remainder]
-    if remainder != 0:
-        warnings.warn(
-            f"n_layers={n_layers} is not divisible by num_blocks={num_blocks}; "
-            f"using block sizes {sizes} (final block absorbs the remainder)."
-        )
-    return sizes
+    if num_blocks < 1:
+        raise ValueError(f"num_blocks must be >= 1, got {num_blocks}")
+    if n_layers < num_blocks:
+        raise ValueError(f"n_layers ({n_layers}) must be >= num_blocks ({num_blocks})")
+    base, remainder = divmod(n_layers, num_blocks)
+    return [base + (1 if index < remainder else 0) for index in range(num_blocks)]
 
 
 class BlockAttnResTransformerBlock(nn.Module):

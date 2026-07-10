@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 
 from src.metrics.norms import LayerInputMagnitudeTracker, language_model_loss
-from src.models.attnres import DepthAttentionResidual, build_model
+from src.models.attnres import DepthAttentionResidual, _block_sizes, build_model
 from src.training.eval import evaluate_model
 from src.utils.config import AttnResConfig, ModelConfig
 from src.utils.runtime import count_parameters
@@ -52,6 +52,22 @@ def _make_full_config(n_layers: int = 4) -> ModelConfig:
         dropout=0.0,
         attnres=AttnResConfig(enabled=True, final_readout=True),
     )
+
+
+def test_block_sizes_are_balanced() -> None:
+    # Remainder is spread across the first blocks, not dumped into the last one.
+    assert _block_sizes(12, 8) == [2, 2, 2, 2, 1, 1, 1, 1]
+    assert _block_sizes(14, 8) == [2, 2, 2, 2, 2, 2, 1, 1]
+    assert _block_sizes(16, 8) == [2, 2, 2, 2, 2, 2, 2, 2]
+    assert _block_sizes(17, 8) == [3, 2, 2, 2, 2, 2, 2, 2]
+    assert _block_sizes(21, 8) == [3, 3, 3, 3, 3, 2, 2, 2]
+    assert _block_sizes(6, 3) == [2, 2, 2]
+
+
+def test_block_attnres_uses_balanced_partition() -> None:
+    model = build_model(_make_block_config(n_layers=12, num_blocks=8))
+    assert model.block_sizes == [2, 2, 2, 2, 1, 1, 1, 1]
+    assert max(model.block_sizes) - min(model.block_sizes) <= 1
 
 
 def test_baseline_and_attnres_shapes() -> None:

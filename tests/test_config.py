@@ -49,16 +49,29 @@ def test_console_step_interval_must_be_positive() -> None:
 
 
 @pytest.mark.parametrize(
-    ("config_name", "expected_num_blocks"),
+    ("config_name", "expected_num_blocks", "expected_block_sizes"),
     [
-        ("fineweb_30m_blessed.yaml", 3),
-        ("fineweb_90m_offcurve.yaml", 6),
-        ("fineweb_130m_ladder.yaml", 8),
+        ("fineweb_30m_blessed.yaml", 3, [2, 2, 2]),
+        ("fineweb_90m_offcurve.yaml", 6, [2, 2, 2, 2, 2, 2]),
+        ("fineweb_130m_ladder.yaml", 8, [2, 2, 2, 2, 1, 1, 1, 1]),
+        ("fineweb_200m_ladder.yaml", 8, [2, 2, 2, 2, 2, 2, 1, 1]),
+        ("fineweb_290m_ladder.yaml", 8, [2, 2, 2, 2, 2, 2, 2, 2]),
+        ("fineweb_350m_ladder.yaml", 8, [3, 2, 2, 2, 2, 2, 2, 2]),
+        ("fineweb_700m_ladder.yaml", 8, [3, 3, 3, 3, 3, 2, 2, 2]),
     ],
 )
-def test_block_attnres_reads_num_blocks_from_yaml(config_name: str, expected_num_blocks: int) -> None:
+def test_block_attnres_reads_num_blocks_from_yaml(
+    config_name: str,
+    expected_num_blocks: int,
+    expected_block_sizes: list[int],
+) -> None:
+    from src.models.attnres import _block_sizes
+
     config_path = REPO_ROOT / "configs" / config_name
     config = load_config(config_path, overrides=["model.architecture=block_attnres"])
     assert config.model.attnres.enabled is True
     assert config.model.attnres.mode == "block"
     assert config.model.attnres.num_blocks == expected_num_blocks
+    assert _block_sizes(config.model.n_layers, expected_num_blocks) == expected_block_sizes
+    assert max(expected_block_sizes) - min(expected_block_sizes) <= 1
+    assert sum(expected_block_sizes) == config.model.n_layers

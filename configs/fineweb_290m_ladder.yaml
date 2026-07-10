@@ -3,7 +3,7 @@ experiment:
   stage: scaling_ladder
   seed: 1337
   deterministic: false
-  notes: "Scaling-ladder point (~290M): Moonshot Table 2 proportions (d/L ~72.0). Block AttnRes uses num_blocks=8, evenly split [2,2,2,2,2,2,2,2]. ~5 tokens/param training budget (1.57B tokens)."
+  notes: "Scaling-ladder point (~290M): Moonshot Table 2 proportions (d/L ~72.0). Block AttnRes uses num_blocks=8 with balanced/even split [2,2,2,2,2,2,2,2]. ~5 tokens/param training budget (1.57B tokens)."
 
 data:
   dataset_type: fineweb_edu
@@ -39,7 +39,7 @@ model:
   attnres:
     enabled: false
     mode: full
-    num_blocks: 8           # Block AttnRes: evenly split [2,2,2,2,2,2,2,2]
+    num_blocks: 8           # Block AttnRes: balanced/even split [2,2,2,2,2,2,2,2]
     window_size: null
     temperature: 1.0
     rmsnorm_keys: true
