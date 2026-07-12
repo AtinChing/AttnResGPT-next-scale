@@ -1,0 +1,27 @@
+{
+  "abs_diffs": {
+    "arc_easy": 0.0,
+    "boolq": 0.0,
+    "hellaswag": 0.0
+  },
+  "atol": 1e-08,
+  "device": "mps",
+  "joint_scores": {
+    "arc_easy": 0.1875,
+    "boolq": 0.75,
+    "hellaswag": 0.25
+  },
+  "limit": 16,
+  "passed": true,
+  "run": "30m/baseline/seed1337",
+  "single_scores": {
+    "arc_easy": 0.1875,
+    "boolq": 0.75,
+    "hellaswag": 0.25
+  },
+  "tasks": [
+    "hellaswag",
+    "arc_easy",
+    "boolq"
+  ]
+}
