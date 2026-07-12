@@ -33,7 +33,7 @@ class AttnResGPTLM(TemplateLM):
         *,
         config: Config,
         checkpoint_path: str | Path,
-        device: str | torch.device = "cuda",
+        device: str | torch.device | None = None,
         batch_size: int = 8,
         max_length: int | None = None,
         mixed_precision: bool | None = None,
@@ -42,7 +42,12 @@ class AttnResGPTLM(TemplateLM):
         super().__init__()
         self.config = config
         self.checkpoint_path = Path(checkpoint_path)
-        self._device = torch.device(device)
+        if device is None:
+            self._device = get_device("auto")
+        elif isinstance(device, torch.device):
+            self._device = device
+        else:
+            self._device = get_device(str(device))
         self.batch_size = int(batch_size)
         self.max_length = int(max_length or config.model.max_seq_len)
         self.mixed_precision = (
@@ -51,6 +56,8 @@ class AttnResGPTLM(TemplateLM):
         self.amp_dtype = amp_dtype_from_string(
             amp_dtype or config.training.amp_dtype,
         )
+        # Autocast is CUDA-only here: MPS/CPU eval stays in fp32 for numerical stability
+        # and to avoid bf16 gaps when loading CUDA-trained checkpoints on Apple Silicon.
         self._use_autocast = self._device.type == "cuda" and self.mixed_precision
 
         tokenizer = build_tokenizer(config.data.tokenizer_name)
@@ -58,6 +65,7 @@ class AttnResGPTLM(TemplateLM):
         self.tokenizer = tokenizer.backend
         self._tokenizer_name = tokenizer.name
 
+        # map_location=device inside load_checkpoint_model remaps CUDA tensors → cpu/mps.
         self.model = load_checkpoint_model(config, self.checkpoint_path, self._device)
         self.model.eval()
 
@@ -241,5 +249,6 @@ class AttnResGPTLM(TemplateLM):
 
     def generate_until(self, requests: list["Instance"], disable_tqdm: bool = False) -> list[str]:
         raise NotImplementedError(
-            "AttnResGPTLM only supports loglikelihood tasks (hellaswag, lambada_openai, arc_easy)."
+            "AttnResGPTLM only supports loglikelihood tasks "
+            "(hellaswag, lambada_openai, piqa, winogrande, arc_*, openbookqa, boolq, sciq)."
         )
