@@ -36,6 +36,7 @@ outputs/research_pipeline/smoke_large/
 outputs/research_pipeline/tmp_full_backup/
 outputs/research_pipeline/*.log
 outputs/wandb_recovery/
+outputs/benchmark_panel/*.log
 
 # W&B data exports
 wandb_export_*.csv
