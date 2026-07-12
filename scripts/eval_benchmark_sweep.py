@@ -37,31 +37,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.eval.benchmark_tasks import TASK_SPECS, metric_value
 from src.eval.lm_eval_gpt import AttnResGPTLM
 from src.utils.config import load_config
 from src.utils.runtime import get_device
 
 
 DEFAULT_TASKS = ("hellaswag", "lambada_openai", "arc_easy")
-
-# Primary metric + random-guess baseline for crossover checks.
-TASK_SPECS: dict[str, dict[str, Any]] = {
-    "hellaswag": {
-        "metric": "acc_norm,none",
-        "chance": 0.25,
-        "choices": 4,
-    },
-    "lambada_openai": {
-        "metric": "acc,none",
-        "chance": 0.0,
-        "choices": None,
-    },
-    "arc_easy": {
-        "metric": "acc_norm,none",
-        "chance": 0.25,
-        "choices": 4,
-    },
-}
 
 
 @dataclass(frozen=True)
@@ -101,17 +83,7 @@ def discover_checkpoints(checkpoint_dir: Path, *, latest_only: bool) -> list[Che
 
 
 def _metric_value(task_results: dict[str, Any], task_name: str) -> float | None:
-    spec = TASK_SPECS[task_name]
-    metric_key = spec["metric"]
-    value = task_results.get(metric_key)
-    if value is None:
-        for key, candidate in task_results.items():
-            if key.startswith(metric_key.split(",")[0]):
-                value = candidate
-                break
-    if value is None:
-        return None
-    return float(value)
+    return metric_value(task_results, task_name)
 
 
 def _extract_task_rows(
@@ -251,6 +223,8 @@ def run_sweep(args: argparse.Namespace) -> dict[str, Any]:
             del lm
             if device.type == "cuda":
                 torch.cuda.empty_cache()
+            elif device.type == "mps" and hasattr(torch, "mps"):
+                torch.mps.empty_cache()
 
         rows = _extract_task_rows(eval_results, checkpoint=checkpoint, run_name=run_name)
         all_rows.extend(rows)
@@ -323,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=list(DEFAULT_TASKS),
         help=f"lm-eval tasks (default: {' '.join(DEFAULT_TASKS)})",
     )
-    parser.add_argument("--device", default="cuda", help="cuda, cpu, or auto")
+    parser.add_argument("--device", default="auto", help="auto, cuda, mps, or cpu")
     parser.add_argument("--batch-size", type=int, default=4, help="Harness batch size for loglikelihood.")
     parser.add_argument("--limit", type=int, default=None, help="Limit examples per task (smoke tests).")
     parser.add_argument("--latest-only", action="store_true", help="Evaluate only the highest step checkpoint.")
