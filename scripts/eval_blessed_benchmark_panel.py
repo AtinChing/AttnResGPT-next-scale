@@ -217,7 +217,15 @@ def evaluate_checkpoint(
     tasks: tuple[str, ...],
     batch_size: int,
     limit: int | None,
+    joint_tasks: bool = False,
 ) -> dict[str, Any]:
+    """Run the panel on one checkpoint.
+
+    By default evaluates tasks one-at-a-time to keep peak memory low on Apple
+    Silicon (90M Full AttnRes + joint HellaSwag requests thrash MPS). Scores match
+    joint multi-task eval when the Collator reorder fix is intact — verified by
+    ``--sanity-check-only``.
+    """
     config = load_config(
         run.config_path,
         overrides=[f"experiment.seed={run.seed}", *VARIANT_OVERRIDES[run.variant]],
@@ -230,15 +238,28 @@ def evaluate_checkpoint(
         mixed_precision=False,
     )
     started = time.perf_counter()
+    scores: dict[str, float | None] = {}
+    raw_results: dict[str, Any] = {}
     try:
-        eval_results = evaluator.simple_evaluate(
-            model=lm,
-            tasks=list(tasks),
-            batch_size=batch_size,
-            device=str(device),
-            limit=limit,
-            log_samples=False,
-        )
+        task_groups: list[tuple[str, ...]]
+        if joint_tasks:
+            task_groups = [tasks]
+        else:
+            task_groups = [(task,) for task in tasks]
+
+        for group in task_groups:
+            eval_results = evaluator.simple_evaluate(
+                model=lm,
+                tasks=list(group),
+                batch_size=batch_size,
+                device=str(device),
+                limit=limit,
+                log_samples=False,
+            )
+            scores.update(extract_scores(eval_results, group))
+            raw_results.update(eval_results.get("results", {}))
+            if device.type == "mps" and hasattr(torch, "mps"):
+                torch.mps.empty_cache()
     finally:
         tokens_seen = lm.tokens_seen
         global_step = lm.global_step
@@ -248,7 +269,6 @@ def evaluate_checkpoint(
             torch.mps.empty_cache()
 
     elapsed = time.perf_counter() - started
-    scores = extract_scores(eval_results, tasks)
     return {
         "scale": run.scale,
         "variant": run.variant,
@@ -259,7 +279,7 @@ def evaluate_checkpoint(
         "tokens_seen": tokens_seen,
         "elapsed_sec": elapsed,
         "scores": scores,
-        "raw_results": eval_results.get("results", {}),
+        "raw_results": raw_results,
     }
 
 
@@ -286,6 +306,7 @@ def run_reorder_sanity_check(
         tasks=tasks,
         batch_size=batch_size,
         limit=limit,
+        joint_tasks=True,
     )
     singles: dict[str, float | None] = {}
     for task in tasks:
@@ -296,6 +317,7 @@ def run_reorder_sanity_check(
             tasks=(task,),
             batch_size=batch_size,
             limit=limit,
+            joint_tasks=False,
         )
         singles[task] = one["scores"][task]
 
