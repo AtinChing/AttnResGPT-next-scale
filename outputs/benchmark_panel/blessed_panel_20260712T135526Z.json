@@ -1,0 +1,2297 @@
+{
+  "created_at": "2026-07-12T13:55:26.456887+00:00",
+  "device": "mps",
+  "torch_version": "2.12.1",
+  "mps_available": true,
+  "checkpoint_root": "/Users/atin5551/Library/CloudStorage/GoogleDrive-atin5551@gmail.com/My Drive/AttnResGPT-next-scale-artifacts/checkpoints",
+  "tasks": [
+    "hellaswag",
+    "lambada_openai",
+    "piqa",
+    "winogrande",
+    "arc_easy",
+    "arc_challenge",
+    "openbookqa",
+    "boolq",
+    "sciq"
+  ],
+  "limit": null,
+  "batch_size": 4,
+  "suite_wall_clock_hours": 1.811137035972222,
+  "rows": [
+    {
+      "scale": "30m",
+      "variant": "baseline",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 251.6227808750118,
+      "scores": {
+        "hellaswag": 0.25363473411670984,
+        "lambada_openai": 0.00504560450223171,
+        "piqa": 0.5321001088139282,
+        "winogrande": 0.5019731649565904,
+        "arc_easy": 0.3207070707070707,
+        "arc_challenge": 0.21075085324232082,
+        "openbookqa": 0.254,
+        "boolq": 0.5223241590214067,
+        "sciq": 0.347
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.25721967735510853,
+          "acc_stderr,none": 0.004362081806560604,
+          "acc_norm,none": 0.25363473411670984,
+          "acc_norm_stderr,none": 0.004342017709967513
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 59569.483693434384,
+          "perplexity_stderr,none": 3368.9125293221427,
+          "acc,none": 0.00504560450223171,
+          "acc_stderr,none": 0.0009871207088079578
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5478781284004353,
+          "acc_stderr,none": 0.011612217507379409,
+          "acc_norm,none": 0.5321001088139282,
+          "acc_norm_stderr,none": 0.011641758014820223
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5019731649565904,
+          "acc_stderr,none": 0.014052376259225643
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33796296296296297,
+          "acc_stderr,none": 0.009706080538632695,
+          "acc_norm,none": 0.3207070707070707,
+          "acc_norm_stderr,none": 0.009577474571108819
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.17150170648464164,
+          "acc_stderr,none": 0.0110154332831854,
+          "acc_norm,none": 0.21075085324232082,
+          "acc_norm_stderr,none": 0.01191827175485213
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.126,
+          "acc_stderr,none": 0.01485561775078758,
+          "acc_norm,none": 0.254,
+          "acc_norm_stderr,none": 0.01948659680164342
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5223241590214067,
+          "acc_stderr,none": 0.008736334115584943
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.347,
+          "acc_stderr,none": 0.015060472031706637,
+          "acc_norm,none": 0.339,
+          "acc_norm_stderr,none": 0.014976758771620224
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "full_attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 723.414318250012,
+      "scores": {
+        "hellaswag": 0.2555267874925314,
+        "lambada_openai": 0.00950902386959053,
+        "piqa": 0.5277475516866159,
+        "winogrande": 0.5082872928176796,
+        "arc_easy": 0.31565656565656564,
+        "arc_challenge": 0.2158703071672355,
+        "openbookqa": 0.238,
+        "boolq": 0.43608562691131497,
+        "sciq": 0.394
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2605058753236407,
+          "acc_stderr,none": 0.004380136468544087,
+          "acc_norm,none": 0.2555267874925314,
+          "acc_norm_stderr,none": 0.00435265526368279
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 29584.292237051883,
+          "perplexity_stderr,none": 1496.708528636101,
+          "acc,none": 0.00950902386959053,
+          "acc_stderr,none": 0.0013520890736522099
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5495103373231773,
+          "acc_stderr,none": 0.011608491028638193,
+          "acc_norm,none": 0.5277475516866159,
+          "acc_norm_stderr,none": 0.011647846656062001
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5082872928176796,
+          "acc_stderr,none": 0.01405055532282417
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.31607744107744107,
+          "acc_stderr,none": 0.009540440071928223,
+          "acc_norm,none": 0.31565656565656564,
+          "acc_norm_stderr,none": 0.009537019245566315
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.1689419795221843,
+          "acc_stderr,none": 0.010949795652484964,
+          "acc_norm,none": 0.2158703071672355,
+          "acc_norm_stderr,none": 0.012022975360030762
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.13,
+          "acc_stderr,none": 0.015055009352810992,
+          "acc_norm,none": 0.238,
+          "acc_norm_stderr,none": 0.019064072958198387
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.43608562691131497,
+          "acc_stderr,none": 0.008673312776324982
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.394,
+          "acc_stderr,none": 0.015459721957493382,
+          "acc_norm,none": 0.367,
+          "acc_norm_stderr,none": 0.015249378464171699
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "block_attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 270.61989800000447,
+      "scores": {
+        "hellaswag": 0.26020713005377416,
+        "lambada_openai": 0.012614011255579274,
+        "piqa": 0.5244831338411317,
+        "winogrande": 0.5177584846093133,
+        "arc_easy": 0.3164983164983165,
+        "arc_challenge": 0.21331058020477817,
+        "openbookqa": 0.254,
+        "boolq": 0.40642201834862385,
+        "sciq": 0.434
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.25652260505875324,
+          "acc_stderr,none": 0.0043582106894420325,
+          "acc_norm,none": 0.26020713005377416,
+          "acc_norm_stderr,none": 0.004378508362084079
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 23528.753299148702,
+          "perplexity_stderr,none": 1182.0748532872121,
+          "acc,none": 0.012614011255579274,
+          "acc_stderr,none": 0.0015548273090948157
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5522306855277476,
+          "acc_stderr,none": 0.011601999796866942,
+          "acc_norm,none": 0.5244831338411317,
+          "acc_norm_stderr,none": 0.011651830225710194
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5177584846093133,
+          "acc_stderr,none": 0.014043619596174988
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33375420875420875,
+          "acc_stderr,none": 0.009676065683575515,
+          "acc_norm,none": 0.3164983164983165,
+          "acc_norm_stderr,none": 0.009543851857323987
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.16638225255972697,
+          "acc_stderr,none": 0.010883248065964047,
+          "acc_norm,none": 0.21331058020477817,
+          "acc_norm_stderr,none": 0.011970971742326334
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.12,
+          "acc_stderr,none": 0.014547276256845676,
+          "acc_norm,none": 0.254,
+          "acc_norm_stderr,none": 0.01948659680164342
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.40642201834862385,
+          "acc_stderr,none": 0.008590531708882389
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.434,
+          "acc_stderr,none": 0.015680876566375044,
+          "acc_norm,none": 0.401,
+          "acc_norm_stderr,none": 0.015506109745498368
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "baseline",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 206.4536257090076,
+      "scores": {
+        "hellaswag": 0.2546305516829317,
+        "lambada_openai": 0.0027168639627401514,
+        "piqa": 0.5261153427638737,
+        "winogrande": 0.49013417521704816,
+        "arc_easy": 0.31565656565656564,
+        "arc_challenge": 0.20819112627986347,
+        "openbookqa": 0.28,
+        "boolq": 0.5847094801223242,
+        "sciq": 0.341
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.25951005775741887,
+          "acc_stderr,none": 0.004374699189284837,
+          "acc_norm,none": 0.2546305516829317,
+          "acc_norm_stderr,none": 0.004347629889041179
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 76797.93884635714,
+          "perplexity_stderr,none": 4438.612654553095,
+          "acc,none": 0.0027168639627401514,
+          "acc_stderr,none": 0.0007251957613394979
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.544069640914037,
+          "acc_stderr,none": 0.011620422647622046,
+          "acc_norm,none": 0.5261153427638737,
+          "acc_norm_stderr,none": 0.01164990085426341
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.49013417521704816,
+          "acc_stderr,none": 0.014049749833367674
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33880471380471383,
+          "acc_stderr,none": 0.009711980224301807,
+          "acc_norm,none": 0.31565656565656564,
+          "acc_norm_stderr,none": 0.009537019245566315
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.17406143344709898,
+          "acc_stderr,none": 0.011080177129482198,
+          "acc_norm,none": 0.20819112627986347,
+          "acc_norm_stderr,none": 0.011864866118448116
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.124,
+          "acc_stderr,none": 0.014754096608517476,
+          "acc_norm,none": 0.28,
+          "acc_norm_stderr,none": 0.020099950647503192
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5847094801223242,
+          "acc_stderr,none": 0.008618637526341599
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.341,
+          "acc_stderr,none": 0.01499813134840284,
+          "acc_norm,none": 0.325,
+          "acc_norm_stderr,none": 0.01481872445909548
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "full_attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 591.1546397079946,
+      "scores": {
+        "hellaswag": 0.25941047600079664,
+        "lambada_openai": 0.016883368911313798,
+        "piqa": 0.5310119695321001,
+        "winogrande": 0.4996053670086819,
+        "arc_easy": 0.31607744107744107,
+        "arc_challenge": 0.21416382252559726,
+        "openbookqa": 0.25,
+        "boolq": 0.6079510703363914,
+        "sciq": 0.448
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2599083847839076,
+          "acc_stderr,none": 0.004376877619233649,
+          "acc_norm,none": 0.25941047600079664,
+          "acc_norm_stderr,none": 0.004374153847826732
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 21824.269218010006,
+          "perplexity_stderr,none": 1066.0112410420943,
+          "acc,none": 0.016883368911313798,
+          "acc_stderr,none": 0.0017949160846878315
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5522306855277476,
+          "acc_stderr,none": 0.011601999796866942,
+          "acc_norm,none": 0.5310119695321001,
+          "acc_norm_stderr,none": 0.011643363511107561
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.4996053670086819,
+          "acc_stderr,none": 0.01405248130604961
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33880471380471383,
+          "acc_stderr,none": 0.009711980224301807,
+          "acc_norm,none": 0.31607744107744107,
+          "acc_norm_stderr,none": 0.009540440071928223
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.16552901023890784,
+          "acc_stderr,none": 0.010860860440277736,
+          "acc_norm,none": 0.21416382252559726,
+          "acc_norm_stderr,none": 0.011988383205966574
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.12,
+          "acc_stderr,none": 0.014547276256845676,
+          "acc_norm,none": 0.25,
+          "acc_norm_stderr,none": 0.019384310743640384
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.6079510703363914,
+          "acc_stderr,none": 0.008538802914911938
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.448,
+          "acc_stderr,none": 0.01573351656634789,
+          "acc_norm,none": 0.419,
+          "acc_norm_stderr,none": 0.015610338967577951
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "block_attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 242.38660695900035,
+      "scores": {
+        "hellaswag": 0.25104560844453294,
+        "lambada_openai": 0.012614011255579274,
+        "piqa": 0.528835690968444,
+        "winogrande": 0.4972375690607735,
+        "arc_easy": 0.3194444444444444,
+        "arc_challenge": 0.21160409556313994,
+        "openbookqa": 0.24,
+        "boolq": 0.44097859327217126,
+        "sciq": 0.376
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2575184226249751,
+          "acc_stderr,none": 0.004363736410689568,
+          "acc_norm,none": 0.25104560844453294,
+          "acc_norm_stderr,none": 0.004327285172595903
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 31832.582081795877,
+          "perplexity_stderr,none": 1672.546508391141,
+          "acc,none": 0.012614011255579274,
+          "acc_stderr,none": 0.0015548273090948157
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5457018498367792,
+          "acc_stderr,none": 0.011616990094583295,
+          "acc_norm,none": 0.528835690968444,
+          "acc_norm_stderr,none": 0.011646407809944788
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.4972375690607735,
+          "acc_stderr,none": 0.014052271211616401
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.32365319865319864,
+          "acc_stderr,none": 0.009600478182273867,
+          "acc_norm,none": 0.3194444444444444,
+          "acc_norm_stderr,none": 0.009567482017268035
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.1766211604095563,
+          "acc_stderr,none": 0.011144042769316423,
+          "acc_norm,none": 0.21160409556313994,
+          "acc_norm_stderr,none": 0.011935916358632793
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.118,
+          "acc_stderr,none": 0.014441922942480794,
+          "acc_norm,none": 0.24,
+          "acc_norm_stderr,none": 0.0191188666537598
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.44097859327217126,
+          "acc_stderr,none": 0.008683913982298728
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.376,
+          "acc_stderr,none": 0.0153251055088981,
+          "acc_norm,none": 0.343,
+          "acc_norm_stderr,none": 0.015019206922357005
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "baseline",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_baseline_ctx1024_steps2289_seed456",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 205.6968105420092,
+      "scores": {
+        "hellaswag": 0.252141007767377,
+        "lambada_openai": 0.002910925674364448,
+        "piqa": 0.5217627856365615,
+        "winogrande": 0.48382004735595896,
+        "arc_easy": 0.3164983164983165,
+        "arc_challenge": 0.2090443686006826,
+        "openbookqa": 0.268,
+        "boolq": 0.5767584097859327,
+        "sciq": 0.345
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.25891256721768574,
+          "acc_stderr,none": 0.004371422731216216,
+          "acc_norm,none": 0.252141007767377,
+          "acc_norm_stderr,none": 0.004333543083293202
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 68325.41737509953,
+          "perplexity_stderr,none": 3916.8080093058857,
+          "acc,none": 0.002910925674364448,
+          "acc_stderr,none": 0.0007505758899360766
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.544613710554951,
+          "acc_stderr,none": 0.011619292444156876,
+          "acc_norm,none": 0.5217627856365615,
+          "acc_norm_stderr,none": 0.011654768618559977
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.48382004735595896,
+          "acc_stderr,none": 0.014045126130978676
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33164983164983164,
+          "acc_stderr,none": 0.00966073378092379,
+          "acc_norm,none": 0.3164983164983165,
+          "acc_norm_stderr,none": 0.009543851857323987
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.1757679180887372,
+          "acc_stderr,none": 0.011122850863120384,
+          "acc_norm,none": 0.2090443686006826,
+          "acc_norm_stderr,none": 0.011882746987406408
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.13,
+          "acc_stderr,none": 0.015055009352810992,
+          "acc_norm,none": 0.268,
+          "acc_norm_stderr,none": 0.019827714859587477
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5767584097859327,
+          "acc_stderr,none": 0.008641391399113633
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.345,
+          "acc_stderr,none": 0.015039986742055365,
+          "acc_norm,none": 0.334,
+          "acc_norm_stderr,none": 0.014922019523732928
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "full_attnres",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_attnres_ctx1024_steps2289_seed456",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 571.5041488749994,
+      "scores": {
+        "hellaswag": 0.2557259510057757,
+        "lambada_openai": 0.008538715311469047,
+        "piqa": 0.5321001088139282,
+        "winogrande": 0.4988161010260458,
+        "arc_easy": 0.31776094276094274,
+        "arc_challenge": 0.20563139931740615,
+        "openbookqa": 0.256,
+        "boolq": 0.4996941896024465,
+        "sciq": 0.411
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2590121489743079,
+          "acc_stderr,none": 0.004371969542814812,
+          "acc_norm,none": 0.2557259510057757,
+          "acc_norm_stderr,none": 0.004353768730644862
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 29304.97125389752,
+          "perplexity_stderr,none": 1446.24296306707,
+          "acc,none": 0.008538715311469047,
+          "acc_stderr,none": 0.0012818766004755696
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5603917301414582,
+          "acc_stderr,none": 0.011580417248656388,
+          "acc_norm,none": 0.5321001088139282,
+          "acc_norm_stderr,none": 0.011641758014820223
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.4988161010260458,
+          "acc_stderr,none": 0.014052446290528871
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.33164983164983164,
+          "acc_stderr,none": 0.00966073378092379,
+          "acc_norm,none": 0.31776094276094274,
+          "acc_norm_stderr,none": 0.009554033064443069
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.17406143344709898,
+          "acc_stderr,none": 0.011080177129482198,
+          "acc_norm,none": 0.20563139931740615,
+          "acc_norm_stderr,none": 0.01181074526074251
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.116,
+          "acc_stderr,none": 0.014335236237885723,
+          "acc_norm,none": 0.256,
+          "acc_norm_stderr,none": 0.019536923574747664
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.4996941896024465,
+          "acc_stderr,none": 0.008745053340722946
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.411,
+          "acc_stderr,none": 0.01556667341859915,
+          "acc_norm,none": 0.38,
+          "acc_norm_stderr,none": 0.015356947477797658
+        }
+      }
+    },
+    {
+      "scale": "30m",
+      "variant": "block_attnres",
+      "seed": 456,
+      "run_name": "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed456",
+      "checkpoint": "outputs/benchmark_scratch/step_0002289.pt",
+      "global_step": 2289,
+      "tokens_seen": 150011904,
+      "elapsed_sec": 243.0071124160022,
+      "scores": {
+        "hellaswag": 0.25642302330213107,
+        "lambada_openai": 0.012225887832330681,
+        "piqa": 0.5255712731229597,
+        "winogrande": 0.4940805051302289,
+        "arc_easy": 0.3287037037037037,
+        "arc_challenge": 0.21075085324232082,
+        "openbookqa": 0.252,
+        "boolq": 0.4596330275229358,
+        "sciq": 0.363
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2568213503286198,
+          "acc_stderr,none": 0.004359871519639379,
+          "acc_norm,none": 0.25642302330213107,
+          "acc_norm_stderr,none": 0.004357656485438901
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 31406.606351022227,
+          "perplexity_stderr,none": 1637.1120353095855,
+          "acc,none": 0.012225887832330681,
+          "acc_stderr,none": 0.0015310208187627138
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5527747551686616,
+          "acc_stderr,none": 0.011600659443293037,
+          "acc_norm,none": 0.5255712731229597,
+          "acc_norm_stderr,none": 0.01165055784457337
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.4940805051302289,
+          "acc_stderr,none": 0.014051500838485925
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.3371212121212121,
+          "acc_stderr,none": 0.009700146509129844,
+          "acc_norm,none": 0.3287037037037037,
+          "acc_norm_stderr,none": 0.009638903167022173
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.17406143344709898,
+          "acc_stderr,none": 0.011080177129482198,
+          "acc_norm,none": 0.21075085324232082,
+          "acc_norm_stderr,none": 0.01191827175485213
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.122,
+          "acc_stderr,none": 0.01465132494504475,
+          "acc_norm,none": 0.252,
+          "acc_norm_stderr,none": 0.019435727282249564
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.4596330275229358,
+          "acc_stderr,none": 0.00871650838147607
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.363,
+          "acc_stderr,none": 0.01521389044467136,
+          "acc_norm,none": 0.347,
+          "acc_norm_stderr,none": 0.015060472031706637
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "baseline",
+      "seed": 123,
+      "run_name": "fineweb_edu_medium_baseline_ctx1024_steps7010_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 364.5710445420118,
+      "scores": {
+        "hellaswag": 0.26867157936666003,
+        "lambada_openai": 0.1292450999417815,
+        "piqa": 0.5636561479869423,
+        "winogrande": 0.5240726124704025,
+        "arc_easy": 0.3787878787878788,
+        "arc_challenge": 0.22098976109215018,
+        "openbookqa": 0.282,
+        "boolq": 0.5770642201834862,
+        "sciq": 0.66
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2667795259908385,
+          "acc_stderr,none": 0.0044137228230535,
+          "acc_norm,none": 0.26867157936666003,
+          "acc_norm_stderr,none": 0.004423628080052265
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 1829.1434229269023,
+          "perplexity_stderr,none": 105.19340204162529,
+          "acc,none": 0.1292450999417815,
+          "acc_stderr,none": 0.004673767235470215
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.573449401523395,
+          "acc_stderr,none": 0.01153926777682101,
+          "acc_norm,none": 0.5636561479869423,
+          "acc_norm_stderr,none": 0.011570895640553759
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5240726124704025,
+          "acc_stderr,none": 0.014036189665395169
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.4234006734006734,
+          "acc_stderr,none": 0.010138671005288915,
+          "acc_norm,none": 0.3787878787878788,
+          "acc_norm_stderr,none": 0.009953737656542215
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.18600682593856654,
+          "acc_stderr,none": 0.011370940183266797,
+          "acc_norm,none": 0.22098976109215018,
+          "acc_norm_stderr,none": 0.012124929206818241
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.148,
+          "acc_stderr,none": 0.01589645856125128,
+          "acc_norm,none": 0.282,
+          "acc_norm_stderr,none": 0.020143572847290726
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5770642201834862,
+          "acc_stderr,none": 0.008640558744656307
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.66,
+          "acc_stderr,none": 0.014987482264363972,
+          "acc_norm,none": 0.579,
+          "acc_norm_stderr,none": 0.015620595475301287
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "full_attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_medium_attnres_ctx1024_steps7010_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 2504.6782405420017,
+      "scores": {
+        "hellaswag": 0.26857199761003786,
+        "lambada_openai": 0.15447312245294004,
+        "piqa": 0.5707290533188248,
+        "winogrande": 0.5067087608524072,
+        "arc_easy": 0.37542087542087543,
+        "arc_challenge": 0.22696245733788395,
+        "openbookqa": 0.28,
+        "boolq": 0.519571865443425,
+        "sciq": 0.656
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2664807807209719,
+          "acc_stderr,none": 0.004412149415717716,
+          "acc_norm,none": 0.26857199761003786,
+          "acc_norm_stderr,none": 0.00442310931329872
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 911.7438615880401,
+          "perplexity_stderr,none": 49.97036667857844,
+          "acc,none": 0.15447312245294004,
+          "acc_stderr,none": 0.005035032106143415
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5810663764961915,
+          "acc_stderr,none": 0.01151147311999497,
+          "acc_norm,none": 0.5707290533188248,
+          "acc_norm_stderr,none": 0.01154851547125808
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5067087608524072,
+          "acc_stderr,none": 0.014051220692330247
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.4158249158249158,
+          "acc_stderr,none": 0.01011334824464792,
+          "acc_norm,none": 0.37542087542087543,
+          "acc_norm_stderr,none": 0.009936218527114224
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.181740614334471,
+          "acc_stderr,none": 0.011269198948880305,
+          "acc_norm,none": 0.22696245733788395,
+          "acc_norm_stderr,none": 0.012240491536132965
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.162,
+          "acc_stderr,none": 0.016494123566423557,
+          "acc_norm,none": 0.28,
+          "acc_norm_stderr,none": 0.020099950647503192
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.519571865443425,
+          "acc_stderr,none": 0.00873835268296191
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.656,
+          "acc_stderr,none": 0.015029633724408919,
+          "acc_norm,none": 0.592,
+          "acc_norm_stderr,none": 0.015549205052920803
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "block_attnres",
+      "seed": 123,
+      "run_name": "fineweb_edu_medium_block_attnres_ctx1024_steps7010_seed123",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 528.5914929160026,
+      "scores": {
+        "hellaswag": 0.26976697868950406,
+        "lambada_openai": 0.1500097030855812,
+        "piqa": 0.573449401523395,
+        "winogrande": 0.5098658247829518,
+        "arc_easy": 0.38762626262626265,
+        "arc_challenge": 0.24232081911262798,
+        "openbookqa": 0.282,
+        "boolq": 0.5024464831804282,
+        "sciq": 0.692
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.26867157936666003,
+          "acc_stderr,none": 0.004423628080052265,
+          "acc_norm,none": 0.26976697868950406,
+          "acc_norm_stderr,none": 0.004429315788310707
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 1069.1119352637677,
+          "perplexity_stderr,none": 60.52241813894081,
+          "acc,none": 0.1500097030855812,
+          "acc_stderr,none": 0.004974835589564562
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5788900979325353,
+          "acc_stderr,none": 0.011519701059151354,
+          "acc_norm,none": 0.573449401523395,
+          "acc_norm_stderr,none": 0.01153926777682101
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5098658247829518,
+          "acc_stderr,none": 0.014049749833367674
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.4393939393939394,
+          "acc_stderr,none": 0.010184134315437384,
+          "acc_norm,none": 0.38762626262626265,
+          "acc_norm_stderr,none": 0.009997307914447627
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.19368600682593856,
+          "acc_stderr,none": 0.011548425409978568,
+          "acc_norm,none": 0.24232081911262798,
+          "acc_norm_stderr,none": 0.012521593295800071
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.136,
+          "acc_stderr,none": 0.015345323649758309,
+          "acc_norm,none": 0.282,
+          "acc_norm_stderr,none": 0.020143572847290726
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5024464831804282,
+          "acc_stderr,none": 0.008744950292567142
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.692,
+          "acc_stderr,none": 0.01460648312734278,
+          "acc_norm,none": 0.597,
+          "acc_norm_stderr,none": 0.015518757419066512
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "baseline",
+      "seed": 1337,
+      "run_name": "fineweb_edu_medium_baseline_ctx1024_steps7010_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 414.77761033299976,
+      "scores": {
+        "hellaswag": 0.26329416450906196,
+        "lambada_openai": 0.11993013778381525,
+        "piqa": 0.5631120783460283,
+        "winogrande": 0.4909234411996843,
+        "arc_easy": 0.37584175084175087,
+        "arc_challenge": 0.2175767918088737,
+        "openbookqa": 0.284,
+        "boolq": 0.5779816513761468,
+        "sciq": 0.648
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.26558454491137223,
+          "acc_stderr,none": 0.004407413723383586,
+          "acc_norm,none": 0.26329416450906196,
+          "acc_norm_stderr,none": 0.004395205528158065
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 1890.6232461553655,
+          "perplexity_stderr,none": 106.16080969811433,
+          "acc,none": 0.11993013778381525,
+          "acc_stderr,none": 0.004526211186068001
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5816104461371056,
+          "acc_stderr,none": 0.011509380214588163,
+          "acc_norm,none": 0.5631120783460283,
+          "acc_norm_stderr,none": 0.011572517929968242
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.4909234411996843,
+          "acc_stderr,none": 0.014050170094497657
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.406986531986532,
+          "acc_stderr,none": 0.010080695355466778,
+          "acc_norm,none": 0.37584175084175087,
+          "acc_norm_stderr,none": 0.009938436373170647
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.18003412969283278,
+          "acc_stderr,none": 0.01122785672905012,
+          "acc_norm,none": 0.2175767918088737,
+          "acc_norm_stderr,none": 0.012057262020972428
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.15,
+          "acc_stderr,none": 0.0159847121351649,
+          "acc_norm,none": 0.284,
+          "acc_norm_stderr,none": 0.020186703693570774
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.5779816513761468,
+          "acc_stderr,none": 0.008638040428462886
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.648,
+          "acc_stderr,none": 0.015110404505648562,
+          "acc_norm,none": 0.578,
+          "acc_norm_stderr,none": 0.015625625112620622
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "full_attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_medium_attnres_ctx1024_steps7010_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 2103.8343329579984,
+      "scores": {
+        "hellaswag": 0.27285401314479185,
+        "lambada_openai": 0.15330875218319426,
+        "piqa": 0.5690968443960827,
+        "winogrande": 0.5185477505919495,
+        "arc_easy": 0.38636363636363635,
+        "arc_challenge": 0.2235494880546075,
+        "openbookqa": 0.276,
+        "boolq": 0.4948012232415902,
+        "sciq": 0.706
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.26837283409679347,
+          "acc_stderr,none": 0.0044220709272121735,
+          "acc_norm,none": 0.27285401314479185,
+          "acc_norm_stderr,none": 0.004445160997618522
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 978.5601415912693,
+          "perplexity_stderr,none": 54.966780547275874,
+          "acc,none": 0.15330875218319426,
+          "acc_stderr,none": 0.005019472537912326
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5794341675734495,
+          "acc_stderr,none": 0.011517665611282623,
+          "acc_norm,none": 0.5690968443960827,
+          "acc_norm_stderr,none": 0.011553893175901508
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5185477505919495,
+          "acc_stderr,none": 0.014042813708888347
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.44276094276094274,
+          "acc_stderr,none": 0.010192333348394433,
+          "acc_norm,none": 0.38636363636363635,
+          "acc_norm_stderr,none": 0.009991296778159724
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.17406143344709898,
+          "acc_stderr,none": 0.011080177129482198,
+          "acc_norm,none": 0.2235494880546075,
+          "acc_norm_stderr,none": 0.012174896631202666
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.132,
+          "acc_stderr,none": 0.015152927850580223,
+          "acc_norm,none": 0.276,
+          "acc_norm_stderr,none": 0.02001121929807355
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.4948012232415902,
+          "acc_stderr,none": 0.008744582253526267
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.706,
+          "acc_stderr,none": 0.014414290540008265,
+          "acc_norm,none": 0.61,
+          "acc_norm_stderr,none": 0.01543172505386673
+        }
+      }
+    },
+    {
+      "scale": "90m",
+      "variant": "block_attnres",
+      "seed": 1337,
+      "run_name": "fineweb_edu_medium_block_attnres_ctx1024_steps7010_seed1337",
+      "checkpoint": "outputs/benchmark_scratch/step_0007010.pt",
+      "global_step": 7010,
+      "tokens_seen": 459407360,
+      "elapsed_sec": 552.6251750410011,
+      "scores": {
+        "hellaswag": 0.2700657239593706,
+        "lambada_openai": 0.1500097030855812,
+        "piqa": 0.5723612622415669,
+        "winogrande": 0.5059194948697711,
+        "arc_easy": 0.3930976430976431,
+        "arc_challenge": 0.20819112627986347,
+        "openbookqa": 0.282,
+        "boolq": 0.463302752293578,
+        "sciq": 0.697
+      },
+      "raw_results": {
+        "hellaswag": {
+          "name": "hellaswag",
+          "alias": "hellaswag",
+          "sample_len": 10042,
+          "acc,none": 0.2657837084246166,
+          "acc_stderr,none": 0.00440846810726257,
+          "acc_norm,none": 0.2700657239593706,
+          "acc_norm_stderr,none": 0.004430861033616419
+        },
+        "lambada_openai": {
+          "name": "lambada_openai",
+          "alias": "lambada_openai",
+          "sample_len": 5153,
+          "perplexity,none": 977.2244355983574,
+          "perplexity_stderr,none": 54.01977717799388,
+          "acc,none": 0.1500097030855812,
+          "acc_stderr,none": 0.004974835589564562
+        },
+        "piqa": {
+          "name": "piqa",
+          "alias": "piqa",
+          "sample_len": 1838,
+          "acc,none": 0.5821545157780196,
+          "acc_stderr,none": 0.011507272925335505,
+          "acc_norm,none": 0.5723612622415669,
+          "acc_norm_stderr,none": 0.011543009623283034
+        },
+        "winogrande": {
+          "name": "winogrande",
+          "alias": "winogrande",
+          "sample_len": 1267,
+          "acc,none": 0.5059194948697711,
+          "acc_stderr,none": 0.014051500838485923
+        },
+        "arc_easy": {
+          "name": "arc_easy",
+          "alias": "arc_easy",
+          "sample_len": 2376,
+          "acc,none": 0.4393939393939394,
+          "acc_stderr,none": 0.010184134315437384,
+          "acc_norm,none": 0.3930976430976431,
+          "acc_norm_stderr,none": 0.010022540618945322
+        },
+        "arc_challenge": {
+          "name": "arc_challenge",
+          "alias": "arc_challenge",
+          "sample_len": 1172,
+          "acc,none": 0.16296928327645052,
+          "acc_stderr,none": 0.010793073338782466,
+          "acc_norm,none": 0.20819112627986347,
+          "acc_norm_stderr,none": 0.011864866118448116
+        },
+        "openbookqa": {
+          "name": "openbookqa",
+          "alias": "openbookqa",
+          "sample_len": 500,
+          "acc,none": 0.148,
+          "acc_stderr,none": 0.01589645856125128,
+          "acc_norm,none": 0.282,
+          "acc_norm_stderr,none": 0.020143572847290726
+        },
+        "boolq": {
+          "name": "boolq",
+          "alias": "boolq",
+          "sample_len": 3270,
+          "acc,none": 0.463302752293578,
+          "acc_stderr,none": 0.008721469450160018
+        },
+        "sciq": {
+          "name": "sciq",
+          "alias": "sciq",
+          "sample_len": 1000,
+          "acc,none": 0.697,
+          "acc_stderr,none": 0.014539683710535193,
+          "acc_norm,none": 0.61,
+          "acc_norm_stderr,none": 0.01543172505386673
+        }
+      }
+    }
+  ],
+  "summary": {
+    "30m": {
+      "variants": {
+        "baseline": {
+          "seeds": [
+            123,
+            456,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_small_baseline_ctx1024_steps2289_seed123",
+            "fineweb_edu_small_baseline_ctx1024_steps2289_seed456",
+            "fineweb_edu_small_baseline_ctx1024_steps2289_seed1337"
+          ]
+        },
+        "full_attnres": {
+          "seeds": [
+            123,
+            456,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_small_attnres_ctx1024_steps2289_seed123",
+            "fineweb_edu_small_attnres_ctx1024_steps2289_seed456",
+            "fineweb_edu_small_attnres_ctx1024_steps2289_seed1337"
+          ]
+        },
+        "block_attnres": {
+          "seeds": [
+            123,
+            456,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed123",
+            "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed456",
+            "fineweb_edu_small_block_attnres_ctx1024_steps2289_seed1337"
+          ]
+        }
+      },
+      "tasks": {
+        "hellaswag": {
+          "label": "HellaSwag",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.25363473411670984,
+                "456": 0.252141007767377,
+                "1337": 0.2546305516829317
+              },
+              "mean": 0.2534687645223395,
+              "std": 0.0012530429587848959,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.2555267874925314,
+                "456": 0.2557259510057757,
+                "1337": 0.25941047600079664
+              },
+              "mean": 0.2568877381663679,
+              "std": 0.002187023356572939,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.26020713005377416,
+                "456": 0.25642302330213107,
+                "1337": 0.25104560844453294
+              },
+              "mean": 0.25589192060014604,
+              "std": 0.004603794316560014,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "lambada_openai": {
+          "label": "LAMBADA",
+          "chance": 0.0,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.00504560450223171,
+                "456": 0.002910925674364448,
+                "1337": 0.0027168639627401514
+              },
+              "mean": 0.0035577980464454365,
+              "std": 0.0012921265512282928,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.00950902386959053,
+                "456": 0.008538715311469047,
+                "1337": 0.016883368911313798
+              },
+              "mean": 0.011643702697457792,
+              "std": 0.004563545901923092,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.012614011255579274,
+                "456": 0.012225887832330681,
+                "1337": 0.012614011255579274
+              },
+              "mean": 0.012484636781163077,
+              "std": 0.00022408316289137425,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "piqa": {
+          "label": "PIQA",
+          "chance": 0.5,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5321001088139282,
+                "456": 0.5217627856365615,
+                "1337": 0.5261153427638737
+              },
+              "mean": 0.5266594124047878,
+              "std": 0.005190093587687405,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.5277475516866159,
+                "456": 0.5321001088139282,
+                "1337": 0.5310119695321001
+              },
+              "mean": 0.5302865433442148,
+              "std": 0.0022651425456649897,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.5244831338411317,
+                "456": 0.5255712731229597,
+                "1337": 0.528835690968444
+              },
+              "mean": 0.5262966993108451,
+              "std": 0.0022651425456650075,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "winogrande": {
+          "label": "WinoGrande",
+          "chance": 0.5,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5019731649565904,
+                "456": 0.48382004735595896,
+                "1337": 0.49013417521704816
+              },
+              "mean": 0.49197579584319917,
+              "std": 0.009215616884049992,
+              "n": 3,
+              "above_chance_mean": false
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.5082872928176796,
+                "456": 0.4988161010260458,
+                "1337": 0.4996053670086819
+              },
+              "mean": 0.502236253617469,
+              "std": 0.005255191885145555,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.5177584846093133,
+                "456": 0.4940805051302289,
+                "1337": 0.4972375690607735
+              },
+              "mean": 0.5030255196001052,
+              "std": 0.012856397498416824,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "arc_easy": {
+          "label": "ARC-Easy",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.3207070707070707,
+                "456": 0.3164983164983165,
+                "1337": 0.31565656565656564
+              },
+              "mean": 0.3176206509539843,
+              "std": 0.0027058503818723355,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.31565656565656564,
+                "456": 0.31776094276094274,
+                "1337": 0.31607744107744107
+              },
+              "mean": 0.31649831649831645,
+              "std": 0.0011135316965760064,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.3164983164983165,
+                "456": 0.3287037037037037,
+                "1337": 0.3194444444444444
+              },
+              "mean": 0.32154882154882153,
+              "std": 0.006369000820884506,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "arc_challenge": {
+          "label": "ARC-Challenge",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.21075085324232082,
+                "456": 0.2090443686006826,
+                "1337": 0.20819112627986347
+              },
+              "mean": 0.2093287827076223,
+              "std": 0.0013033491737644638,
+              "n": 3,
+              "above_chance_mean": false
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.2158703071672355,
+                "456": 0.20563139931740615,
+                "1337": 0.21416382252559726
+              },
+              "mean": 0.21188850967007963,
+              "std": 0.005485580637652413,
+              "n": 3,
+              "above_chance_mean": false
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.21331058020477817,
+                "456": 0.21075085324232082,
+                "1337": 0.21160409556313994
+              },
+              "mean": 0.21188850967007963,
+              "std": 0.0013033491737644638,
+              "n": 3,
+              "above_chance_mean": false
+            }
+          }
+        },
+        "openbookqa": {
+          "label": "OpenBookQA",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.254,
+                "456": 0.268,
+                "1337": 0.28
+              },
+              "mean": 0.26733333333333337,
+              "std": 0.013012814197295434,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.238,
+                "456": 0.256,
+                "1337": 0.25
+              },
+              "mean": 0.248,
+              "std": 0.009165151389911688,
+              "n": 3,
+              "above_chance_mean": false
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.254,
+                "456": 0.252,
+                "1337": 0.24
+              },
+              "mean": 0.24866666666666667,
+              "std": 0.007571877794400371,
+              "n": 3,
+              "above_chance_mean": false
+            }
+          }
+        },
+        "boolq": {
+          "label": "BoolQ",
+          "chance": 0.5,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5223241590214067,
+                "456": 0.5767584097859327,
+                "1337": 0.5847094801223242
+              },
+              "mean": 0.5612640163098879,
+              "std": 0.03395643155735036,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.43608562691131497,
+                "456": 0.4996941896024465,
+                "1337": 0.6079510703363914
+              },
+              "mean": 0.5145769622833843,
+              "std": 0.08689393162315126,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.40642201834862385,
+                "456": 0.4596330275229358,
+                "1337": 0.44097859327217126
+              },
+              "mean": 0.435677879714577,
+              "std": 0.026998630474561577,
+              "n": 3,
+              "above_chance_mean": false
+            }
+          }
+        },
+        "sciq": {
+          "label": "SciQ",
+          "chance": 0.25,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.347,
+                "456": 0.345,
+                "1337": 0.341
+              },
+              "mean": 0.3443333333333333,
+              "std": 0.003055050463303866,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.394,
+                "456": 0.411,
+                "1337": 0.448
+              },
+              "mean": 0.4176666666666667,
+              "std": 0.027610384519838424,
+              "n": 3,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.434,
+                "456": 0.363,
+                "1337": 0.376
+              },
+              "mean": 0.391,
+              "std": 0.0378021163428716,
+              "n": 3,
+              "above_chance_mean": true
+            }
+          }
+        }
+      }
+    },
+    "90m": {
+      "variants": {
+        "baseline": {
+          "seeds": [
+            123,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_medium_baseline_ctx1024_steps7010_seed123",
+            "fineweb_edu_medium_baseline_ctx1024_steps7010_seed1337"
+          ]
+        },
+        "full_attnres": {
+          "seeds": [
+            123,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_medium_attnres_ctx1024_steps7010_seed123",
+            "fineweb_edu_medium_attnres_ctx1024_steps7010_seed1337"
+          ]
+        },
+        "block_attnres": {
+          "seeds": [
+            123,
+            1337
+          ],
+          "run_names": [
+            "fineweb_edu_medium_block_attnres_ctx1024_steps7010_seed123",
+            "fineweb_edu_medium_block_attnres_ctx1024_steps7010_seed1337"
+          ]
+        }
+      },
+      "tasks": {
+        "hellaswag": {
+          "label": "HellaSwag",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.26867157936666003,
+                "1337": 0.26329416450906196
+              },
+              "mean": 0.26598287193786097,
+              "std": 0.00380240651106089,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.26857199761003786,
+                "1337": 0.27285401314479185
+              },
+              "mean": 0.27071300537741483,
+              "std": 0.003027842221770688,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.26976697868950406,
+                "1337": 0.2700657239593706
+              },
+              "mean": 0.26991635132443736,
+              "std": 0.00021124480617005164,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "lambada_openai": {
+          "label": "LAMBADA",
+          "chance": 0.0,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.1292450999417815,
+                "1337": 0.11993013778381525
+              },
+              "mean": 0.12458761886279837,
+              "std": 0.006586672908394,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.15447312245294004,
+                "1337": 0.15330875218319426
+              },
+              "mean": 0.15389093731806713,
+              "std": 0.00082333411354925,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.1500097030855812,
+                "1337": 0.1500097030855812
+              },
+              "mean": 0.1500097030855812,
+              "std": 0.0,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "piqa": {
+          "label": "PIQA",
+          "chance": 0.5,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5636561479869423,
+                "1337": 0.5631120783460283
+              },
+              "mean": 0.5633841131664853,
+              "std": 0.00038471533252803657,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.5707290533188248,
+                "1337": 0.5690968443960827
+              },
+              "mean": 0.5699129488574537,
+              "std": 0.001154145997584188,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.573449401523395,
+                "1337": 0.5723612622415669
+              },
+              "mean": 0.5729053318824809,
+              "std": 0.0007694306650560731,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "winogrande": {
+          "label": "WinoGrande",
+          "chance": 0.5,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5240726124704025,
+                "1337": 0.4909234411996843
+              },
+              "mean": 0.5074980268350434,
+              "std": 0.023440003796239124,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.5067087608524072,
+                "1337": 0.5185477505919495
+              },
+              "mean": 0.5126282557221784,
+              "std": 0.008371429927228266,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.5098658247829518,
+                "1337": 0.5059194948697711
+              },
+              "mean": 0.5078926598263614,
+              "std": 0.0027904766424094486,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "arc_easy": {
+          "label": "ARC-Easy",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.3787878787878788,
+                "1337": 0.37584175084175087
+              },
+              "mean": 0.3773148148148148,
+              "std": 0.002083227048950247,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.37542087542087543,
+                "1337": 0.38636363636363635
+              },
+              "mean": 0.3808922558922559,
+              "std": 0.007737700467529545,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.38762626262626265,
+                "1337": 0.3930976430976431
+              },
+              "mean": 0.39036195286195285,
+              "std": 0.0038688502337647724,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "arc_challenge": {
+          "label": "ARC-Challenge",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.22098976109215018,
+                "1337": 0.2175767918088737
+              },
+              "mean": 0.21928327645051193,
+              "std": 0.002413333724186185,
+              "n": 2,
+              "above_chance_mean": false
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.22696245733788395,
+                "1337": 0.2235494880546075
+              },
+              "mean": 0.22525597269624573,
+              "std": 0.0024133337241861656,
+              "n": 2,
+              "above_chance_mean": false
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.24232081911262798,
+                "1337": 0.20819112627986347
+              },
+              "mean": 0.22525597269624573,
+              "std": 0.024133337241861695,
+              "n": 2,
+              "above_chance_mean": false
+            }
+          }
+        },
+        "openbookqa": {
+          "label": "OpenBookQA",
+          "chance": 0.25,
+          "metric": "acc_norm,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.282,
+                "1337": 0.284
+              },
+              "mean": 0.283,
+              "std": 0.0014142135623730963,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.28,
+                "1337": 0.276
+              },
+              "mean": 0.278,
+              "std": 0.0028284271247461927,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.282,
+                "1337": 0.282
+              },
+              "mean": 0.282,
+              "std": 0.0,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        },
+        "boolq": {
+          "label": "BoolQ",
+          "chance": 0.5,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.5770642201834862,
+                "1337": 0.5779816513761468
+              },
+              "mean": 0.5775229357798165,
+              "std": 0.0006487218176023176,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.519571865443425,
+                "1337": 0.4948012232415902
+              },
+              "mean": 0.5071865443425077,
+              "std": 0.017515489075263086,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.5024464831804282,
+                "1337": 0.463302752293578
+              },
+              "mean": 0.4828746177370031,
+              "std": 0.027678797551033082,
+              "n": 2,
+              "above_chance_mean": false
+            }
+          }
+        },
+        "sciq": {
+          "label": "SciQ",
+          "chance": 0.25,
+          "metric": "acc,none",
+          "variants": {
+            "baseline": {
+              "per_seed": {
+                "123": 0.66,
+                "1337": 0.648
+              },
+              "mean": 0.654,
+              "std": 0.008485281374238578,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "full_attnres": {
+              "per_seed": {
+                "123": 0.656,
+                "1337": 0.706
+              },
+              "mean": 0.681,
+              "std": 0.03535533905932733,
+              "n": 2,
+              "above_chance_mean": true
+            },
+            "block_attnres": {
+              "per_seed": {
+                "123": 0.692,
+                "1337": 0.697
+              },
+              "mean": 0.6944999999999999,
+              "std": 0.0035355339059327407,
+              "n": 2,
+              "above_chance_mean": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "markdown": "# Blessed downstream benchmark panel\n\n## 30M\n\n| Benchmark | Chance | baseline mean\u00b1std | full_attnres mean\u00b1std | block_attnres mean\u00b1std | baseline s123 | baseline s456 | baseline s1337 | full_attnres s123 | full_attnres s456 | full_attnres s1337 | block_attnres s123 | block_attnres s456 | block_attnres s1337 |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| HellaSwag | 25% | 25.3\u00b10.1 | 25.7\u00b10.2 | 25.6\u00b10.5 | 25.4 | 25.2 | 25.5 | 25.6 | 25.6 | 25.9 | 26.0 | 25.6 | 25.1 |\n| LAMBADA | \u2014 | 0.4\u00b10.1 | 1.2\u00b10.5 | 1.2\u00b10.0 | 0.5 | 0.3 | 0.3 | 1.0 | 0.9 | 1.7 | 1.3 | 1.2 | 1.3 |\n| PIQA | 50% | 52.7\u00b10.5 | 53.0\u00b10.2 | 52.6\u00b10.2 | 53.2 | 52.2 | 52.6 | 52.8 | 53.2 | 53.1 | 52.4 | 52.6 | 52.9 |\n| WinoGrande | 50% | 49.2\u00b10.9 | 50.2\u00b10.5 | 50.3\u00b11.3 | 50.2 | 48.4 | 49.0 | 50.8 | 49.9 | 50.0 | 51.8 | 49.4 | 49.7 |\n| ARC-Easy | 25% | 31.8\u00b10.3 | 31.6\u00b10.1 | 32.2\u00b10.6 | 32.1 | 31.6 | 31.6 | 31.6 | 31.8 | 31.6 | 31.6 | 32.9 | 31.9 |\n| ARC-Challenge | 25% | 20.9\u00b10.1 | 21.2\u00b10.5 | 21.2\u00b10.1 | 21.1 | 20.9 | 20.8 | 21.6 | 20.6 | 21.4 | 21.3 | 21.1 | 21.2 |\n| OpenBookQA | 25% | 26.7\u00b11.3 | 24.8\u00b10.9 | 24.9\u00b10.8 | 25.4 | 26.8 | 28.0 | 23.8 | 25.6 | 25.0 | 25.4 | 25.2 | 24.0 |\n| BoolQ | 50% | 56.1\u00b13.4 | 51.5\u00b18.7 | 43.6\u00b12.7 | 52.2 | 57.7 | 58.5 | 43.6 | 50.0 | 60.8 | 40.6 | 46.0 | 44.1 |\n| SciQ | 25% | 34.4\u00b10.3 | 41.8\u00b12.8 | 39.1\u00b13.8 | 34.7 | 34.5 | 34.1 | 39.4 | 41.1 | 44.8 | 43.4 | 36.3 | 37.6 |\n\n## 90M\n\n| Benchmark | Chance | baseline mean\u00b1std | full_attnres mean\u00b1std | block_attnres mean\u00b1std | baseline s123 | baseline s1337 | full_attnres s123 | full_attnres s1337 | block_attnres s123 | block_attnres s1337 |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| HellaSwag | 25% | 26.6\u00b10.4 | 27.1\u00b10.3 | 27.0\u00b10.0 | 26.9 | 26.3 | 26.9 | 27.3 | 27.0 | 27.0 |\n| LAMBADA | \u2014 | 12.5\u00b10.7 | 15.4\u00b10.1 | 15.0\u00b10.0 | 12.9 | 12.0 | 15.4 | 15.3 | 15.0 | 15.0 |\n| PIQA | 50% | 56.3\u00b10.0 | 57.0\u00b10.1 | 57.3\u00b10.1 | 56.4 | 56.3 | 57.1 | 56.9 | 57.3 | 57.2 |\n| WinoGrande | 50% | 50.7\u00b12.3 | 51.3\u00b10.8 | 50.8\u00b10.3 | 52.4 | 49.1 | 50.7 | 51.9 | 51.0 | 50.6 |\n| ARC-Easy | 25% | 37.7\u00b10.2 | 38.1\u00b10.8 | 39.0\u00b10.4 | 37.9 | 37.6 | 37.5 | 38.6 | 38.8 | 39.3 |\n| ARC-Challenge | 25% | 21.9\u00b10.2 | 22.5\u00b10.2 | 22.5\u00b12.4 | 22.1 | 21.8 | 22.7 | 22.4 | 24.2 | 20.8 |\n| OpenBookQA | 25% | 28.3\u00b10.1 | 27.8\u00b10.3 | 28.2\u00b10.0 | 28.2 | 28.4 | 28.0 | 27.6 | 28.2 | 28.2 |\n| BoolQ | 50% | 57.8\u00b10.1 | 50.7\u00b11.8 | 48.3\u00b12.8 | 57.7 | 57.8 | 52.0 | 49.5 | 50.2 | 46.3 |\n| SciQ | 25% | 65.4\u00b10.8 | 68.1\u00b13.5 | 69.4\u00b10.4 | 66.0 | 64.8 | 65.6 | 70.6 | 69.2 | 69.7 |\n"
+}

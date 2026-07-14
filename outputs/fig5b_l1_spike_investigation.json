@@ -1,0 +1,221 @@
+{
+  "question": "90M Full AttnRes layer-1 magnitude spike investigation",
+  "answers": {
+    "1_develops_over_training": true,
+    "1_detail": "At step 100, ||h1||~4.5; grows monotonically to ~185-215 by end. Not present at init/early.",
+    "2_sources": "Implementation: 3 sources at layer1 pre-attn (emb, L0 attn out, L0 mlp out), not 2.",
+    "2_weights_90m_final": "Softmax concentrates ~98% on L0 attn out; that source has ||.||~230-267; mixed ||h1||~227-263.",
+    "3_30m": "No comparable spike. Final ||h1||~3-8 across seeds. Seed123 mildly concentrates (89% on L0 attn, mag~14).",
+    "4_loss": "Spike anti-correlates with val_loss (r~-0.75): loss falls while ||h1|| rises. Full still beats baseline. Appears benign for loss.",
+    "hypothesis": "Partially confirmed: few sources + concentration on large raw value. Refinement: the large source is L0 attention OUTPUT (which itself exploded), not embedding; keys are RMSNormed but values are raw."
+  },
+  "plots": [
+    "outputs/plots/fig5b_l1_spike_over_training.png",
+    "outputs/plots/fig5b_l1_vs_valloss_90m_full.png",
+    "outputs/plots/fig5b_l1_depth_attn_sources.png"
+  ],
+  "training_endpoints": {
+    "90m_full_123": {
+      "first": {
+        "step": 100,
+        "L1": 4.404324471950531
+      },
+      "last": {
+        "step": 7010,
+        "L1": 214.6123046875
+      },
+      "max": {
+        "step": 6900,
+        "L1": 215.66886711120605
+      }
+    },
+    "90m_full_1337": {
+      "first": {
+        "step": 100,
+        "L1": 4.58118748664856
+      },
+      "last": {
+        "step": 7010,
+        "L1": 185.37463188171387
+      },
+      "max": {
+        "step": 6200,
+        "L1": 187.2779369354248
+      }
+    },
+    "30m_full_123": {
+      "first": {
+        "step": 100,
+        "L1": 2.481870412826538
+      },
+      "last": {
+        "step": 2200,
+        "L1": 7.7207337617874146
+      },
+      "max": {
+        "step": 2200,
+        "L1": 7.7207337617874146
+      }
+    },
+    "30m_full_456": {
+      "first": {
+        "step": 100,
+        "L1": 2.55418199300766
+      },
+      "last": {
+        "step": 2200,
+        "L1": 3.1949580311775208
+      },
+      "max": {
+        "step": 900,
+        "L1": 3.682127058506012
+      }
+    },
+    "30m_full_1337": {
+      "first": {
+        "step": 100,
+        "L1": 2.2593782544136047
+      },
+      "last": {
+        "step": 2200,
+        "L1": 3.544528603553772
+      },
+      "max": {
+        "step": 1300,
+        "L1": 3.676752746105194
+      }
+    }
+  },
+  "layer1_pre_attn_probes": {
+    "90m_early": {
+      "source_indices": [
+        0,
+        1,
+        2
+      ],
+      "source_mags": [
+        0.9742153882980347,
+        15.301816940307617,
+        18.250598907470703
+      ],
+      "mean_weights": [
+        0.160010427236557,
+        0.7098814845085144,
+        0.13010810315608978
+      ],
+      "frac_tokens_argmax": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "mixed_mag": 11.062931060791016,
+      "weight_entropy": 0.7986897230148315,
+      "n_sources": 3,
+      "query_norm": 0.146293506026268
+    },
+    "90m_final_123": {
+      "source_indices": [
+        0,
+        1,
+        2
+      ],
+      "source_mags": [
+        1.1244617700576782,
+        267.4904479980469,
+        19.487167358398438
+      ],
+      "mean_weights": [
+        0.01004747860133648,
+        0.9820366501808167,
+        0.007915869355201721
+      ],
+      "frac_tokens_argmax": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "mixed_mag": 262.6662292480469,
+      "weight_entropy": 0.10134225338697433,
+      "n_sources": 3,
+      "query_norm": 0.42851677536964417
+    },
+    "90m_final_1337": {
+      "source_indices": [
+        0,
+        1,
+        2
+      ],
+      "source_mags": [
+        1.156991958618164,
+        230.8280792236328,
+        18.834640502929688
+      ],
+      "mean_weights": [
+        0.010324524715542793,
+        0.9842091798782349,
+        0.005466317757964134
+      ],
+      "frac_tokens_argmax": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "mixed_mag": 227.17396545410156,
+      "weight_entropy": 0.09086807817220688,
+      "n_sources": 3,
+      "query_norm": 0.3705510199069977
+    },
+    "30m_123": {
+      "source_indices": [
+        0,
+        1,
+        2
+      ],
+      "source_mags": [
+        0.99396151304245,
+        14.206884384155273,
+        6.758545398712158
+      ],
+      "mean_weights": [
+        0.06495505571365356,
+        0.8925995826721191,
+        0.04244539886713028
+      ],
+      "frac_tokens_argmax": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "mixed_mag": 12.664440155029297,
+      "weight_entropy": 0.4116096794605255,
+      "n_sources": 3,
+      "query_norm": 0.23544469475746155
+    },
+    "30m_1337": {
+      "source_indices": [
+        0,
+        1,
+        2
+      ],
+      "source_mags": [
+        1.022933006286621,
+        10.902099609375,
+        6.597013473510742
+      ],
+      "mean_weights": [
+        0.2517513632774353,
+        0.26086077094078064,
+        0.48738786578178406
+      ],
+      "frac_tokens_argmax": [
+        0.0078125,
+        0.0078125,
+        0.984375
+      ],
+      "mixed_mag": 4.076148986816406,
+      "weight_entropy": 1.0386961698532104,
+      "n_sources": 3,
+      "query_norm": 0.13021324574947357
+    }
+  }
+}
