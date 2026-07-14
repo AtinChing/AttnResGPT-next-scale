@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 
-from src.metrics.norms import LayerInputMagnitudeTracker, language_model_loss
+from src.metrics.norms import Layer1DepthAttentionProbe, LayerInputMagnitudeTracker, language_model_loss
 from src.models.attnres import DepthAttentionResidual, _block_sizes, build_model
 from src.training.eval import evaluate_model
 from src.utils.config import AttnResConfig, ModelConfig
@@ -68,6 +68,49 @@ def test_block_attnres_uses_balanced_partition() -> None:
     model = build_model(_make_block_config(n_layers=12, num_blocks=8))
     assert model.block_sizes == [2, 2, 2, 2, 1, 1, 1, 1]
     assert max(model.block_sizes) - min(model.block_sizes) <= 1
+
+
+def test_layer1_depth_attention_probe_full_and_block() -> None:
+    """Layer-1 depth-attn weights + source mags for Full (3 sources) and Block (2)."""
+    input_ids = torch.randint(0, 64, (2, 8))
+
+    torch.manual_seed(0)
+    full = build_model(_matched_config("attnres", n_layers=4, num_blocks=2))
+    probe = Layer1DepthAttentionProbe()
+    probe.register(full)
+    full.train()
+    full(input_ids, return_aux=False)
+    snap = probe.snapshot()
+    probe.close()
+    assert snap["layer1_depth_attn/n_sources"] == 3.0
+    for name in ("emb", "l0_attn", "l0_mlp"):
+        assert f"layer1_depth_attn/weight_{name}" in snap
+        assert f"layer1_depth_attn/mag_{name}" in snap
+        assert snap[f"layer1_depth_attn/weight_{name}"] >= 0.0
+        assert snap[f"layer1_depth_attn/mag_{name}"] >= 0.0
+    weight_sum = sum(snap[f"layer1_depth_attn/weight_{name}"] for name in ("emb", "l0_attn", "l0_mlp"))
+    assert abs(weight_sum - 1.0) < 1e-5
+    assert snap["layer1_depth_attn/mixed_mag"] >= 0.0
+
+    torch.manual_seed(0)
+    block = build_model(_make_block_config(n_layers=4, num_blocks=2))
+    probe = Layer1DepthAttentionProbe()
+    probe.register(block)
+    block.train()
+    block(input_ids, return_aux=False)
+    snap = probe.snapshot()
+    probe.close()
+    assert snap["layer1_depth_attn/n_sources"] == 2.0
+    assert "layer1_depth_attn/weight_emb" in snap
+    assert "layer1_depth_attn/weight_partial_after_l0" in snap
+    assert "layer1_depth_attn/weight_l0_attn" not in snap
+
+    baseline = build_model(_matched_config("baseline", n_layers=4))
+    probe = Layer1DepthAttentionProbe()
+    probe.register(baseline)
+    baseline(input_ids)
+    assert probe.snapshot() == {}
+    probe.close()
 
 
 def test_baseline_and_attnres_shapes() -> None:

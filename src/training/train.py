@@ -14,7 +14,12 @@ import torch
 from torch.optim import AdamW
 
 from src.data.dataset import build_dataloaders
-from src.metrics.norms import LayerInputMagnitudeTracker, language_model_loss, perplexity_from_loss
+from src.metrics.norms import (
+    Layer1DepthAttentionProbe,
+    LayerInputMagnitudeTracker,
+    language_model_loss,
+    perplexity_from_loss,
+)
 from src.models.attnres import build_model
 from src.training.eval import evaluate_model, evaluate_positionwise_loss
 from src.utils.config import Config, load_config
@@ -235,6 +240,8 @@ def train_from_config(config: Config) -> dict[str, Any]:
     scaler = _scaler_for(device, config.training.mixed_precision, amp_dtype)
     norm_tracker = LayerInputMagnitudeTracker()
     norm_tracker.register(model)
+    layer1_probe = Layer1DepthAttentionProbe()
+    layer1_probe.register(model)
 
     start_step = 0
     best_val_loss: float | None = None
@@ -277,6 +284,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 model.train()
                 optimizer.zero_grad(set_to_none=True)
                 norm_tracker.reset_step()
+                layer1_probe.reset_step()
                 total_loss = 0.0
                 step_tokens = 0
                 step_sequences = 0
@@ -337,6 +345,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
                     "elapsed_time_sec": elapsed_time_sec,
                     "tokens_per_sec": step_tokens / max(step_time_sec, 1e-8),
                     **step_norms,
+                    **layer1_probe.snapshot(),
                     **_collect_aux_scalars(last_aux),
                 }
                 last_train_payload = deepcopy(train_payload)
@@ -469,6 +478,11 @@ def train_from_config(config: Config) -> dict[str, Any]:
                 "last_layer_input_gradient_magnitudes": last_train_payload.get(
                     "layer_input_gradient_magnitudes", {}
                 ),
+                "last_layer1_depth_attn": {
+                    key: value
+                    for key, value in last_train_payload.items()
+                    if key.startswith("layer1_depth_attn/")
+                },
                 **data_meta,
                 **(latest_positionwise_paths or {}),
                 **final_eval,
@@ -498,6 +512,7 @@ def train_from_config(config: Config) -> dict[str, Any]:
             raise
     finally:
         norm_tracker.close()
+        layer1_probe.close()
 
 
 def main() -> None:

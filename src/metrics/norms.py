@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import DefaultDict
+from typing import Any, DefaultDict
 
 import torch
 import torch.nn as nn
@@ -128,3 +128,114 @@ def last_layer_input_magnitude(layer_input_magnitudes: dict[str, float]) -> floa
         return None
     last_site = max(layer_input_magnitudes, key=lambda site: (_layer_number(site), site))
     return float(layer_input_magnitudes[last_site])
+
+
+# Full AttnRes layer-1 pre-attn history: [emb, L0 attn out, L0 mlp out].
+_FULL_LAYER1_SOURCE_NAMES = ("emb", "l0_attn", "l0_mlp")
+# Block AttnRes layer-1 (second layer of first block): [emb, partial after L0].
+_BLOCK_LAYER1_SOURCE_NAMES = ("emb", "partial_after_l0")
+
+
+@dataclass
+class Layer1DepthAttentionProbe:
+    """Log layer-1 depth-attention weights and raw source magnitudes.
+
+    Tracks the pre-attention ``DepthAttentionResidual`` at transformer layer 1
+    (index 1). Used to monitor the Full AttnRes layer-1 magnitude spike seen at
+    90M: softmax concentrating on a large L0-attn source. No-op for baseline.
+    """
+
+    architecture: str = "baseline"
+    weight_sums: DefaultDict[str, float] = field(default_factory=lambda: defaultdict(float))
+    mag_sums: DefaultDict[str, float] = field(default_factory=lambda: defaultdict(float))
+    mixed_mag_sum: float = 0.0
+    entropy_sum: float = 0.0
+    n_sources: int = 0
+    counts: int = 0
+    _wrapped: Any = None
+    _original_forward: Any = None
+
+    def register(self, model: nn.Module) -> None:
+        architecture = getattr(getattr(model, "config", None), "architecture", "baseline")
+        mode = getattr(getattr(getattr(model, "config", None), "attnres", None), "mode", None)
+        if architecture == "block_attnres" or (architecture == "attnres" and mode == "block"):
+            self.architecture = "block_attnres"
+        elif architecture == "attnres":
+            self.architecture = "attnres"
+        else:
+            self.architecture = "baseline"
+            return
+        if not hasattr(model, "blocks") or len(model.blocks) < 2:
+            return
+        mixer = model.blocks[1].pre_attn_res
+        self._wrapped = mixer
+        self._original_forward = mixer.forward
+
+        def wrapped_forward(history, *, return_stats: bool = False):
+            mixed, stats = self._original_forward(history, return_stats=return_stats)
+            self._record(history, mixed, stats if return_stats else None, mixer)
+            return mixed, stats
+
+        mixer.forward = wrapped_forward  # type: ignore[method-assign]
+
+    def _source_names(self, n_sources: int) -> tuple[str, ...]:
+        if self.architecture == "attnres" and n_sources == len(_FULL_LAYER1_SOURCE_NAMES):
+            return _FULL_LAYER1_SOURCE_NAMES
+        if self.architecture == "block_attnres" and n_sources == len(_BLOCK_LAYER1_SOURCE_NAMES):
+            return _BLOCK_LAYER1_SOURCE_NAMES
+        return tuple(f"source_{index}" for index in range(n_sources))
+
+    def _record(self, history, mixed: torch.Tensor, stats: dict | None, mixer: nn.Module) -> None:
+        selected_history, _indices = mixer._select_history(history)
+        n_sources = len(selected_history)
+        self.n_sources = n_sources
+        names = self._source_names(n_sources)
+        if stats is not None and "mean_weights" in stats:
+            mean_weights = stats["mean_weights"]
+            weights = [float(mean_weights[i].item()) for i in range(n_sources)]
+            entropy = float(stats.get("entropy", 0.0))
+        else:
+            values = torch.stack(selected_history, dim=0)
+            keys = mixer.key_norm(values)
+            logits = torch.einsum("d,sbtd->sbt", mixer.query, keys) / max(mixer.temperature, 1e-6)
+            weight_tensor = torch.softmax(logits, dim=0)
+            weights = weight_tensor.detach().float().mean(dim=(1, 2)).tolist()
+            entropy = float(
+                (-(weight_tensor.detach().float() * weight_tensor.detach().float().clamp_min(1e-8).log())
+                 .sum(dim=0)
+                 .mean())
+                .item()
+            )
+        for name, source, weight in zip(names, selected_history, weights):
+            self.weight_sums[name] += float(weight)
+            self.mag_sums[name] += _magnitude(source)
+        self.mixed_mag_sum += _magnitude(mixed)
+        self.entropy_sum += entropy
+        self.counts += 1
+
+    def reset_step(self) -> None:
+        self.weight_sums.clear()
+        self.mag_sums.clear()
+        self.mixed_mag_sum = 0.0
+        self.entropy_sum = 0.0
+        self.counts = 0
+
+    def snapshot(self) -> dict[str, Any]:
+        if self.architecture == "baseline" or self.counts == 0:
+            return {}
+        scale = float(self.counts)
+        payload: dict[str, Any] = {
+            "layer1_depth_attn/n_sources": float(self.n_sources),
+            "layer1_depth_attn/entropy": self.entropy_sum / scale,
+            "layer1_depth_attn/mixed_mag": self.mixed_mag_sum / scale,
+        }
+        for name in self.weight_sums:
+            payload[f"layer1_depth_attn/weight_{name}"] = self.weight_sums[name] / scale
+            payload[f"layer1_depth_attn/mag_{name}"] = self.mag_sums[name] / scale
+        return payload
+
+    def close(self) -> None:
+        if self._wrapped is not None and self._original_forward is not None:
+            self._wrapped.forward = self._original_forward
+        self._wrapped = None
+        self._original_forward = None
