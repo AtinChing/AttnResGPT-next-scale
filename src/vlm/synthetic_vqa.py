@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 
 COLORS = ("red", "green", "blue", "yellow")
 SHAPES = ("circle", "square", "triangle")
+SHAPE_PLURALS = ("circles", "squares", "triangles")
 DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 COUNT_WORDS = ("one", "two", "three", "four")
 LOCATIONS = (
@@ -25,6 +26,12 @@ LOCATIONS = (
 )
 FAMILIES = ("local_detail", "attribute", "counting", "location", "relation")
 YES_NO = ("yes", "no")
+
+SHAPE_TO_PLURAL = {
+    "circle": "circles",
+    "square": "squares",
+    "triangle": "triangles",
+}
 
 COLOR_RGB = {
     "red": (1.0, 0.1, 0.1),
@@ -96,6 +103,7 @@ class VQATokenizer:
             *QUESTION_WORDS,
             *COLORS,
             *SHAPES,
+            *SHAPE_PLURALS,
             *DIGITS,
             *COUNT_WORDS,
             *LOCATIONS,
@@ -119,7 +127,11 @@ class VQATokenizer:
         return dict(self.token_to_id)
 
     def encode(self, text: str) -> list[int]:
-        return [self.token_to_id[token] for token in text.split()]
+        tokens = text.split()
+        missing = [token for token in tokens if token not in self.token_to_id]
+        if missing:
+            raise KeyError(f"Unknown tokenizer tokens: {missing} in text={text!r}")
+        return [self.token_to_id[token] for token in tokens]
 
     def decode(self, ids: list[int] | torch.Tensor) -> str:
         if isinstance(ids, torch.Tensor):
@@ -282,7 +294,7 @@ def _build_question(rng: np.random.Generator, objects: tuple[SceneObject, ...]) 
                 count = sum(obj.shape == shape for obj in objects)
                 if count == 0:
                     continue
-                return family, f"how many {shape}s are there", COUNT_WORDS[count - 1]
+                return family, f"how many {SHAPE_TO_PLURAL[shape]} are there", COUNT_WORDS[count - 1]
             color = str(rng.choice(COLORS))
             count = sum(obj.color == color for obj in objects)
             if count == 0:
