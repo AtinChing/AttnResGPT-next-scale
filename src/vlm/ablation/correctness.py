@@ -85,11 +85,40 @@ def run_correctness_checks(*, device: torch.device, report_path: Path | None = N
         b = generate_example(split="train", split_seed=7, example_index=3, image_size=64)
         assert a.question == b.question and a.answer == b.answer
         assert (a.image == b.image).all()
+        assert a.difficulty_level in (1, 2, 3, 4, 5)
 
     def test_unambiguous_answers() -> None:
         for index in range(32):
             example = generate_example(split="train", split_seed=11, example_index=index, image_size=64)
             assert example.answer in tokenizer.token_to_id
+            assert not example.held_out
+
+    def test_difficulty_ladder_and_held_out() -> None:
+        for level in range(1, 6):
+            example = generate_example(
+                split="train",
+                split_seed=19,
+                example_index=level,
+                image_size=64,
+                forced_level=level,
+            )
+            assert example.difficulty_level == level
+            assert example.answer in tokenizer.token_to_id
+            if level >= 5:
+                assert example.hops >= 2
+            if level == 4:
+                assert example.hops == 1
+        held = 0
+        for index in range(40):
+            example = generate_example(
+                split="validation",
+                split_seed=21,
+                example_index=index,
+                image_size=64,
+            )
+            held += int(example.held_out)
+            tokenizer.encode_supervised(example.question, example.answer)
+        assert held > 0
 
     def test_patch_shape() -> None:
         encoder = build_vision_encoder(_tiny_vision_config("baseline")).to(device)
@@ -270,6 +299,7 @@ def run_correctness_checks(*, device: torch.device, report_path: Path | None = N
 
     check("dataset_determinism", test_dataset_determinism)
     check("unambiguous_answers", test_unambiguous_answers)
+    check("difficulty_ladder_and_held_out", test_difficulty_ladder_and_held_out)
     check("patch_token_shape", test_patch_shape)
     check("bidirectional_attention_shape", test_bidirectional_shape)
     check("baseline_encoder_forward_backward", lambda: test_encoder_forward_backward("baseline"))

@@ -42,53 +42,88 @@ def _load_validation_curves(project_root: Path, config_hash: str) -> dict[str, l
     return curves
 
 
-def _load_routing_summary(project_root: Path, config_hash: str, variant: str) -> dict[str, Any] | None:
-    runs_root = Path(project_root) / "runs" / variant
-    for path in runs_root.glob(f"*/{config_hash}/routing_summary.json"):
-        return json.loads(path.read_text(encoding="utf-8"))
-    return None
+def _load_routing_summaries(project_root: Path, config_hash: str) -> dict[str, list[dict[str, Any]]]:
+    summaries: dict[str, list[dict[str, Any]]] = {}
+    runs_root = Path(project_root) / "runs"
+    for path in runs_root.glob(f"*/*/{config_hash}/routing_summary.json"):
+        variant = path.parts[-4]
+        summaries.setdefault(variant, []).append(json.loads(path.read_text(encoding="utf-8")))
+    return summaries
+
+
+def _variant_mean_matrix(
+    rows: list[dict[str, Any]],
+    variants: list[str],
+    keys: list[str],
+) -> np.ndarray:
+    matrix = np.full((len(variants), len(keys)), np.nan, dtype=float)
+    for row_index, variant in enumerate(variants):
+        for col_index, key in enumerate(keys):
+            values = [
+                float(row[key])
+                for row in rows
+                if row.get("variant") == variant and row.get(key) is not None
+            ]
+            if values:
+                matrix[row_index, col_index] = float(np.mean(values))
+    return matrix
 
 
 def generate_plots(project_root: Path, config_hash: str) -> Path:
-    plots_dir = ensure_dir(Path(project_root) / "plots")
+    plots_dir = ensure_dir(Path(project_root) / "plots" / config_hash)
     rows = collect_run_rows(project_root, config_hash)
+    variants = sorted({str(row["variant"]) for row in rows})
 
-    # 1. Overall test accuracy
-    variants, means, stds = _mean_std_by_variant(rows, "test_accuracy")
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(variants, means, yerr=stds, capsize=4)
-    ax.set_title("Overall test accuracy by variant (exploratory)")
-    ax.set_ylabel("Accuracy")
-    ax.tick_params(axis="x", rotation=30)
-    _save_figure(fig, plots_dir, "01_test_accuracy_by_variant")
-
-    # 2. Accuracy by family
-    families = [
-        "local_detail_accuracy",
-        "attribute_accuracy",
-        "counting_accuracy",
-        "location_accuracy",
-        "relation_accuracy",
-    ]
+    # 1. Accuracy versus difficulty level
+    level_keys = [f"level_{level}_accuracy" for level in range(1, 6)]
     if variants:
-        fig, ax = plt.subplots(figsize=(10, 5))
-        x = np.arange(len(variants))
-        width = 0.15
-        for index, family in enumerate(families):
-            family_means = []
-            for variant in variants:
-                values = [float(row[family]) for row in rows if row["variant"] == variant and row.get(family) is not None]
-                family_means.append(float(np.mean(values)) if values else 0.0)
-            ax.bar(x + index * width, family_means, width=width, label=family.replace("_accuracy", ""))
-        ax.set_xticks(x + width * 2)
-        ax.set_xticklabels(variants, rotation=30)
-        ax.set_title("Accuracy by question family and variant")
+        matrix = _variant_mean_matrix(rows, variants, level_keys)
+        fig, ax = plt.subplots(figsize=(9, 5))
+        x = np.arange(1, 6)
+        for row_index, variant in enumerate(variants):
+            ax.plot(x, matrix[row_index], marker="o", label=variant)
+        ax.set_xticks(x)
+        ax.set_xlabel("Difficulty level")
+        ax.set_ylabel("Test accuracy")
+        ax.set_title("Accuracy versus difficulty level")
         ax.legend(fontsize=8)
-        _save_figure(fig, plots_dir, "02_accuracy_by_family")
+        _save_figure(fig, plots_dir, "01_accuracy_vs_difficulty")
 
-    # 3/4 validation curves
+    # 2. Accuracy versus visual degradation strength
+    deg_keys = ["degradation_low_accuracy", "degradation_mid_accuracy", "degradation_high_accuracy"]
+    if variants:
+        matrix = _variant_mean_matrix(rows, variants, deg_keys)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        x = np.arange(len(deg_keys))
+        width = 0.8 / max(1, len(variants))
+        for index, variant in enumerate(variants):
+            ax.bar(x + index * width, matrix[index], width=width, label=variant)
+        ax.set_xticks(x + width * (len(variants) - 1) / 2)
+        ax.set_xticklabels(["low", "mid", "high"])
+        ax.set_ylabel("Test accuracy")
+        ax.set_title("Accuracy versus visual degradation strength")
+        ax.legend(fontsize=8)
+        _save_figure(fig, plots_dir, "02_accuracy_vs_degradation")
+
+    # 3. Accuracy versus reasoning-hop count
+    hop_keys = [f"hops_{hop}_accuracy" for hop in (0, 1, 2)]
+    if variants:
+        matrix = _variant_mean_matrix(rows, variants, hop_keys)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        x = np.arange(len(hop_keys))
+        for row_index, variant in enumerate(variants):
+            ax.plot(x, matrix[row_index], marker="o", label=variant)
+        ax.set_xticks(x)
+        ax.set_xticklabels(["0-hop", "1-hop", "2-hop"])
+        ax.set_ylabel("Test accuracy")
+        ax.set_title("Accuracy versus reasoning-hop count")
+        ax.legend(fontsize=8)
+        _save_figure(fig, plots_dir, "03_accuracy_vs_hops")
+
+    # 4. Validation accuracy over training
     curves = _load_validation_curves(project_root, config_hash)
     fig, ax = plt.subplots(figsize=(8, 4))
+    plotted = False
     for variant, variant_curves in curves.items():
         if not variant_curves:
             continue
@@ -99,83 +134,109 @@ def generate_plots(project_root: Path, config_hash: str) -> Path:
                 matrix[row_index, col_index] = point["accuracy"]
         mean = np.nanmean(matrix, axis=0)
         ax.plot(np.arange(len(mean)), mean, label=variant)
+        plotted = True
     ax.set_title("Validation accuracy over training")
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Accuracy")
-    ax.legend(fontsize=8)
-    _save_figure(fig, plots_dir, "03_validation_accuracy_curves")
+    if plotted:
+        ax.legend(fontsize=8)
+    _save_figure(fig, plots_dir, "04_validation_accuracy_curves")
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    for variant, variant_curves in curves.items():
-        if not variant_curves:
-            continue
-        max_len = max(len(curve) for curve in variant_curves)
-        matrix = np.full((len(variant_curves), max_len), np.nan)
-        for row_index, curve in enumerate(variant_curves):
-            for col_index, point in enumerate(curve):
-                matrix[row_index, col_index] = point["loss"]
-        mean = np.nanmean(matrix, axis=0)
-        ax.plot(np.arange(len(mean)), mean, label=variant)
-    ax.set_title("Validation loss over training")
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Loss")
-    ax.legend(fontsize=8)
-    _save_figure(fig, plots_dir, "04_validation_loss_curves")
+    # 5. Answer-token loss by variant
+    variants, means, stds = _mean_std_by_variant(rows, "test_answer_token_nll")
+    if variants:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.bar(variants, means, yerr=stds, capsize=4)
+        ax.set_title("Answer-token NLL by variant")
+        ax.set_ylabel("NLL")
+        ax.tick_params(axis="x", rotation=30)
+        _save_figure(fig, plots_dir, "05_answer_token_loss_by_variant")
 
-    # 5/6/7 resource plots
-    for index, (key, title, name) in enumerate(
-        [
-            ("parameter_count", "Parameter count by variant", "05_parameter_count"),
-            ("peak_gpu_memory_bytes", "Peak GPU memory by variant", "06_peak_gpu_memory"),
-            ("throughput_examples_per_sec", "Throughput by variant", "07_throughput"),
-        ],
-        start=5,
+    # 6/7 Encoder/decoder routing by difficulty
+    routing = _load_routing_summaries(project_root, config_hash)
+    for namespace, plot_name, title in (
+        ("encoder", "06_encoder_routing_by_difficulty", "Encoder routing by difficulty"),
+        ("decoder", "07_decoder_routing_by_difficulty", "Decoder routing by difficulty"),
+    ):
+        fig, ax = plt.subplots(figsize=(9, 5))
+        plotted = False
+        for variant, summaries in routing.items():
+            if not summaries:
+                continue
+            # Average entropy over seeds/sites via by_difficulty summary when present.
+            level_to_values: dict[str, list[float]] = {}
+            for summary in summaries:
+                by_diff = (summary.get("by_difficulty_test") or summary.get("by_difficulty") or {}).get(
+                    namespace, {}
+                )
+                if not by_diff:
+                    # Fallback: mean over sites' by_difficulty.
+                    sites = summary.get(f"{namespace}_routing") or summary.get(
+                        f"test_{namespace}_routing", []
+                    )
+                    for site in sites:
+                        for level, stats in site.get("by_difficulty", {}).items():
+                            level_to_values.setdefault(level, []).append(float(stats.get("entropy", np.nan)))
+                else:
+                    for level, stats in by_diff.items():
+                        level_to_values.setdefault(level, []).append(float(stats.get("entropy", np.nan)))
+            if not level_to_values:
+                continue
+            levels = sorted(level_to_values, key=lambda item: int(item.split("_")[-1]) if "_" in item else item)
+            ys = [float(np.nanmean(level_to_values[level])) for level in levels]
+            ax.plot(range(len(levels)), ys, marker="o", label=variant)
+            plotted = True
+        if plotted:
+            ax.set_title(title)
+            ax.set_xlabel("Difficulty group")
+            ax.set_ylabel("Routing entropy")
+            ax.legend(fontsize=8)
+            _save_figure(fig, plots_dir, plot_name)
+        else:
+            plt.close(fig)
+
+    # Keep a few diagnostic family/resource plots under higher numbers.
+    family_keys = [
+        "local_detail_accuracy",
+        "attribute_accuracy",
+        "counting_accuracy",
+        "location_accuracy",
+        "relation_accuracy",
+        "compositional_accuracy",
+        "multi_hop_accuracy",
+    ]
+    if variants:
+        fig, ax = plt.subplots(figsize=(11, 5))
+        x = np.arange(len(variants))
+        width = 0.11
+        for index, family in enumerate(family_keys):
+            family_means = []
+            for variant in variants:
+                values = [
+                    float(row[family])
+                    for row in rows
+                    if row["variant"] == variant and row.get(family) is not None
+                ]
+                family_means.append(float(np.mean(values)) if values else 0.0)
+            ax.bar(x + index * width, family_means, width=width, label=family.replace("_accuracy", ""))
+        ax.set_xticks(x + width * 3)
+        ax.set_xticklabels(variants, rotation=30)
+        ax.set_title("Accuracy by question family and variant")
+        ax.legend(fontsize=7, ncol=2)
+        _save_figure(fig, plots_dir, "08_accuracy_by_family")
+
+    for name, key, title in (
+        ("09_held_out_accuracy", "held_out_accuracy", "Held-out combination accuracy"),
+        ("10_parameter_count", "parameter_count", "Parameter count by variant"),
+        ("11_peak_gpu_memory", "peak_gpu_memory_bytes", "Peak GPU memory by variant"),
     ):
         variants, means, stds = _mean_std_by_variant(rows, key)
+        if not variants:
+            continue
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.bar(variants, means, yerr=stds, capsize=4)
         ax.set_title(title)
         ax.tick_params(axis="x", rotation=30)
         _save_figure(fig, plots_dir, name)
-
-    # Routing heatmaps / entropy: use first available seed summary per interesting variant.
-    for variant in ("encoder_full", "both_full", "decoder_full", "encoder_block", "both_block"):
-        summary = _load_routing_summary(project_root, config_hash, variant)
-        if not summary:
-            continue
-        for namespace, plot_prefix in (
-            ("encoder_routing", "08_encoder"),
-            ("decoder_routing", "09_decoder"),
-        ):
-            sites = summary.get(namespace, [])
-            if not sites:
-                continue
-            families = sorted({family for site in sites for family in site.get("by_family", {})})
-            if families:
-                matrix = np.array(
-                    [
-                        [site.get("by_family", {}).get(family, {}).get("embedding", np.nan) for family in families]
-                        for site in sites
-                    ],
-                    dtype=float,
-                )
-                fig, ax = plt.subplots(figsize=(8, 4))
-                im = ax.imshow(matrix, aspect="auto", cmap="viridis")
-                ax.set_yticks(range(len(sites)))
-                ax.set_yticklabels([f"site_{site['site_index']}" for site in sites])
-                ax.set_xticks(range(len(families)))
-                ax.set_xticklabels(families, rotation=30)
-                ax.set_title(f"{namespace} embedding contribution by family ({variant})")
-                fig.colorbar(im, ax=ax, fraction=0.046)
-                _save_figure(fig, plots_dir, f"{plot_prefix}_routing_heatmap_{variant}")
-
-            entropies = [float(site.get("entropy", np.nan)) for site in sites]
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.plot(range(len(entropies)), entropies, marker="o")
-            ax.set_title(f"{namespace} entropy by site ({variant})")
-            ax.set_xlabel("Routing site")
-            ax.set_ylabel("Entropy")
-            prefix = "10_encoder" if namespace.startswith("encoder") else "11_decoder"
-            _save_figure(fig, plots_dir, f"{prefix}_routing_entropy_{variant}")
 
     return plots_dir

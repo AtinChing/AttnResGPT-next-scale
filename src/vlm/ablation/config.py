@@ -71,6 +71,21 @@ class AblationExperimentConfig:
     max_seq_len: int = 128
     text_context_budget: int = 32
     dataset_seed_offset: int = 17
+    dataset_version: str = "hard_v1"
+    difficulty_bump_level: int = 0
+    max_objects: int = 6
+    min_objects_level2: int = 3
+    digit_scale: float = 1.0
+    distractor_count: int = 4
+    noise_scale: float = 1.0
+    blur_chance: float = 0.35
+    occlusion_chance: float = 0.35
+    contrast_chance: float = 0.35
+    overlap_jitter: float = 0.35
+    relation_extra_hops: int = 0
+    sanity_check_baseline: bool = True
+    sanity_max_bumps: int = 3
+    sanity_l45_accuracy_ceiling: float = 0.95
 
     project_root: str = ""
     train_size: int = 0
@@ -119,9 +134,46 @@ def resolve_experiment_config(config: AblationExperimentConfig) -> AblationExper
         config.num_workers = 0
     patches_per_side = config.image_size // config.patch_size
     num_patches = patches_per_side * patches_per_side
+    # Multi-hop questions are longer than the original toy prompts.
+    config.text_context_budget = max(config.text_context_budget, 48)
     minimum_seq_len = num_patches + config.text_context_budget
     if config.max_seq_len < minimum_seq_len:
         config.max_seq_len = minimum_seq_len
+    return config
+
+
+def difficulty_profile_from_config(config: AblationExperimentConfig):
+    from src.vlm.synthetic_vqa import DifficultyProfile
+
+    return DifficultyProfile(
+        dataset_version=config.dataset_version,
+        bump_level=config.difficulty_bump_level,
+        max_objects=config.max_objects,
+        min_objects_level2=config.min_objects_level2,
+        digit_scale=config.digit_scale,
+        distractor_count=config.distractor_count,
+        noise_scale=config.noise_scale,
+        blur_chance=config.blur_chance,
+        occlusion_chance=config.occlusion_chance,
+        contrast_chance=config.contrast_chance,
+        overlap_jitter=config.overlap_jitter,
+        relation_extra_hops=config.relation_extra_hops,
+    )
+
+
+def apply_difficulty_profile(config: AblationExperimentConfig, profile) -> AblationExperimentConfig:
+    config.dataset_version = profile.dataset_version
+    config.difficulty_bump_level = profile.bump_level
+    config.max_objects = profile.max_objects
+    config.min_objects_level2 = profile.min_objects_level2
+    config.digit_scale = profile.digit_scale
+    config.distractor_count = profile.distractor_count
+    config.noise_scale = profile.noise_scale
+    config.blur_chance = profile.blur_chance
+    config.occlusion_chance = profile.occlusion_chance
+    config.contrast_chance = profile.contrast_chance
+    config.overlap_jitter = profile.overlap_jitter
+    config.relation_extra_hops = profile.relation_extra_hops
     return config
 
 
@@ -131,6 +183,9 @@ def canonical_config_payload(config: AblationExperimentConfig) -> dict[str, Any]
         "project_root",
         "resume",
         "force_restart",
+        "sanity_check_baseline",
+        "sanity_max_bumps",
+        "sanity_l45_accuracy_ceiling",
         "wandb_enabled",
         "wandb_project",
         "wandb_entity",

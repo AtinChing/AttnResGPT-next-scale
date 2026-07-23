@@ -16,18 +16,35 @@ FAMILY_KEYS = {
     "counting": "counting_accuracy",
     "location": "location_accuracy",
     "relation": "relation_accuracy",
+    "compositional": "compositional_accuracy",
+    "multi_hop": "multi_hop_accuracy",
 }
 
 
 def _flatten_run_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
-    family = metrics.get("family_accuracy_test", {})
+    family = metrics.get("family_accuracy_test", {}) or {}
+    levels = metrics.get("level_accuracy_test", {}) or {}
+    hops = metrics.get("hops_accuracy_test", {}) or {}
+    deg = metrics.get("degradation_bin_accuracy_test", {}) or {}
     row = {
         "variant": metrics.get("variant"),
         "seed": metrics.get("seed"),
         "encoder_residual": metrics.get("encoder_residual"),
         "decoder_residual": metrics.get("decoder_residual"),
         "validation_accuracy": metrics.get("validation_accuracy"),
+        "validation_loss": metrics.get("validation_loss"),
+        "validation_answer_token_nll": metrics.get("validation_answer_token_nll"),
         "test_accuracy": metrics.get("test_accuracy"),
+        "test_loss": metrics.get("test_loss"),
+        "test_answer_token_nll": metrics.get("test_answer_token_nll"),
+        "held_out_accuracy": metrics.get("held_out_accuracy_test"),
+        "visual_degraded_accuracy": metrics.get("visual_degraded_accuracy_test"),
+        "local_detail_accuracy_metric": metrics.get("local_detail_accuracy_test"),
+        "one_hop_accuracy": metrics.get("one_hop_accuracy_test"),
+        "multi_hop_accuracy_metric": metrics.get("multi_hop_accuracy_test"),
+        "steps_to_70_val_acc": metrics.get("steps_to_70_val_acc"),
+        "steps_to_80_val_acc": metrics.get("steps_to_80_val_acc"),
+        "steps_to_90_val_acc": metrics.get("steps_to_90_val_acc"),
         "parameter_count": metrics.get("parameter_count"),
         "parameter_increase_pct": metrics.get("parameter_increase_pct"),
         "peak_gpu_memory_bytes": metrics.get("peak_allocated_bytes"),
@@ -38,6 +55,12 @@ def _flatten_run_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     }
     for family_name, column in FAMILY_KEYS.items():
         row[column] = family.get(family_name)
+    for level in ("1", "2", "3", "4", "5"):
+        row[f"level_{level}_accuracy"] = levels.get(level)
+    for hop in ("0", "1", "2", "3"):
+        row[f"hops_{hop}_accuracy"] = hops.get(hop)
+    for bucket in ("low", "mid", "high"):
+        row[f"degradation_{bucket}_accuracy"] = deg.get(bucket)
     return row
 
 
@@ -72,12 +95,38 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     numeric_keys = [
         "validation_accuracy",
+        "validation_loss",
+        "validation_answer_token_nll",
         "test_accuracy",
+        "test_loss",
+        "test_answer_token_nll",
+        "held_out_accuracy",
+        "visual_degraded_accuracy",
         "local_detail_accuracy",
         "attribute_accuracy",
         "counting_accuracy",
         "location_accuracy",
         "relation_accuracy",
+        "compositional_accuracy",
+        "multi_hop_accuracy",
+        "local_detail_accuracy_metric",
+        "one_hop_accuracy",
+        "multi_hop_accuracy_metric",
+        "level_1_accuracy",
+        "level_2_accuracy",
+        "level_3_accuracy",
+        "level_4_accuracy",
+        "level_5_accuracy",
+        "hops_0_accuracy",
+        "hops_1_accuracy",
+        "hops_2_accuracy",
+        "hops_3_accuracy",
+        "degradation_low_accuracy",
+        "degradation_mid_accuracy",
+        "degradation_high_accuracy",
+        "steps_to_70_val_acc",
+        "steps_to_80_val_acc",
+        "steps_to_90_val_acc",
         "parameter_count",
         "parameter_increase_pct",
         "peak_gpu_memory_bytes",
@@ -110,12 +159,11 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def write_tables(project_root: Path, config_hash: str) -> dict[str, Path]:
     rows = collect_run_rows(project_root, config_hash)
-    tables_dir = ensure_dir(Path(project_root) / "tables")
+    tables_dir = ensure_dir(Path(project_root) / "tables" / config_hash)
     all_path = tables_dir / "all_runs.csv"
     agg_path = tables_dir / "aggregate_results.csv"
     write_csv(all_path, rows)
     aggregated = aggregate_rows(rows)
-    # Flatten list values for CSV readability.
     flat_agg: list[dict[str, Any]] = []
     for row in aggregated:
         flat = dict(row)

@@ -27,18 +27,18 @@ def _stats_from_weights(weights: torch.Tensor, source_indices: list[int]) -> dic
     }
 
 
-def _site_family_stats(
+def _site_group_stats(
     weights: torch.Tensor,
     source_indices: list[int],
-    families: list[str],
+    groups: list[str],
 ) -> dict[str, dict[str, Any]]:
     payload: dict[str, dict[str, Any]] = {}
-    for family in sorted(set(families)):
-        mask = torch.tensor([item == family for item in families], dtype=torch.bool)
+    for group in sorted(set(groups)):
+        mask = torch.tensor([item == group for item in groups], dtype=torch.bool)
         if not bool(mask.any()):
             continue
-        family_weights = weights[:, mask, :]
-        payload[family] = _stats_from_weights(family_weights, source_indices)
+        group_weights = weights[:, mask, :]
+        payload[group] = _stats_from_weights(group_weights, source_indices)
     return payload
 
 
@@ -48,9 +48,15 @@ def collect_routing_batch_stats(
     families: list[str],
     prefix_length: int,
     text_length: int,
+    difficulty_levels: list[int] | None = None,
 ) -> dict[str, Any]:
     encoder_sites: list[dict[str, Any]] = []
     decoder_sites: list[dict[str, Any]] = []
+    level_groups = (
+        [f"level_{level}" for level in difficulty_levels]
+        if difficulty_levels is not None
+        else []
+    )
 
     for site_index, residual in enumerate(model.iter_encoder_depth_residuals()):
         if residual.last_weights is None:
@@ -60,7 +66,8 @@ def collect_routing_batch_stats(
         site = {
             "site_index": site_index,
             **_stats_from_weights(weights, indices),
-            "by_family": _site_family_stats(weights, indices, families),
+            "by_family": _site_group_stats(weights, indices, families),
+            "by_difficulty": _site_group_stats(weights, indices, level_groups) if level_groups else {},
         }
         encoder_sites.append(site)
 
@@ -75,7 +82,8 @@ def collect_routing_batch_stats(
         site = {
             "site_index": site_index,
             **_stats_from_weights(weights, indices),
-            "by_family": _site_family_stats(weights, indices, families),
+            "by_family": _site_group_stats(weights, indices, families),
+            "by_difficulty": _site_group_stats(weights, indices, level_groups) if level_groups else {},
             "visual_prefix": _stats_from_weights(vision_slice, indices) if vision_slice.numel() else {},
             "text_positions": _stats_from_weights(text_slice, indices) if text_slice.numel() else {},
         }
@@ -103,6 +111,9 @@ def aggregate_routing_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
             family_buckets: dict[str, dict[str, list[float]]] = defaultdict(
                 lambda: {"entropy": [], "embedding": [], "max_source_prob": []}
             )
+            difficulty_buckets: dict[str, dict[str, list[float]]] = defaultdict(
+                lambda: {"entropy": [], "embedding": [], "max_source_prob": []}
+            )
             for row in rows:
                 sites = row.get(namespace, [])
                 if site_index >= len(sites):
@@ -118,6 +129,10 @@ def aggregate_routing_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
                     family_buckets[family]["entropy"].append(float(family_stats["entropy"]))
                     family_buckets[family]["embedding"].append(float(family_stats["embedding_contribution"]))
                     family_buckets[family]["max_source_prob"].append(float(family_stats["max_source_prob"]))
+                for level, level_stats in site.get("by_difficulty", {}).items():
+                    difficulty_buckets[level]["entropy"].append(float(level_stats["entropy"]))
+                    difficulty_buckets[level]["embedding"].append(float(level_stats["embedding_contribution"]))
+                    difficulty_buckets[level]["max_source_prob"].append(float(level_stats["max_source_prob"]))
             if not mean_weight_sums:
                 continue
             width = len(mean_weight_sums[0])
@@ -141,11 +156,38 @@ def aggregate_routing_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
                         }
                         for family, bucket in family_buckets.items()
                     },
+                    "by_difficulty": {
+                        level: {
+                            key: sum(values) / max(1, len(values))
+                            for key, values in bucket.items()
+                        }
+                        for level, bucket in difficulty_buckets.items()
+                    },
                 }
             )
         return aggregated
 
+    def _by_difficulty_summary(sites: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+        buckets: dict[str, dict[str, list[float]]] = defaultdict(
+            lambda: {"entropy": [], "embedding": [], "max_source_prob": []}
+        )
+        for site in sites:
+            for level, stats in site.get("by_difficulty", {}).items():
+                buckets[level]["entropy"].append(float(stats.get("entropy", 0.0)))
+                buckets[level]["embedding"].append(float(stats.get("embedding", 0.0)))
+                buckets[level]["max_source_prob"].append(float(stats.get("max_source_prob", 0.0)))
+        return {
+            level: {key: sum(values) / max(1, len(values)) for key, values in bucket.items()}
+            for level, bucket in buckets.items()
+        }
+
+    encoder_sites = _aggregate_sites("encoder_routing")
+    decoder_sites = _aggregate_sites("decoder_routing")
     return {
-        "encoder_routing": _aggregate_sites("encoder_routing"),
-        "decoder_routing": _aggregate_sites("decoder_routing"),
+        "encoder_routing": encoder_sites,
+        "decoder_routing": decoder_sites,
+        "by_difficulty": {
+            "encoder": _by_difficulty_summary(encoder_sites),
+            "decoder": _by_difficulty_summary(decoder_sites),
+        },
     }

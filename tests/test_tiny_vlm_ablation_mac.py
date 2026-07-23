@@ -98,10 +98,49 @@ def test_synthetic_vqa_determinism_and_small_sample() -> None:
     assert a.question == b.question
     assert a.answer == b.answer
     assert a.image.shape == (3, 64, 64)
+    assert a.difficulty_level in (1, 2, 3, 4, 5)
     # Cap local generation well under the Colab dataset sizes.
     for index in range(8):
         example = generate_example(split="train", split_seed=5, example_index=index, image_size=64)
         assert example.answer
+
+
+def test_hard_vqa_levels_and_held_out() -> None:
+    tokenizer = VQATokenizer()
+    for level in range(1, 6):
+        example = generate_example(
+            split="train",
+            split_seed=8,
+            example_index=level * 3,
+            image_size=64,
+            forced_level=level,
+        )
+        assert example.difficulty_level == level
+        encoded = tokenizer.encode_supervised(example.question, example.answer)
+        assert encoded["answer_id"] == tokenizer.token_to_id[example.answer]
+    held = sum(
+        int(
+            generate_example(
+                split="test",
+                split_seed=9,
+                example_index=index,
+                image_size=64,
+            ).held_out
+        )
+        for index in range(30)
+    )
+    assert held > 0
+
+
+def test_config_hash_changes_with_difficulty_bump() -> None:
+    from src.vlm.ablation.config import AblationExperimentConfig, apply_difficulty_profile, config_hash, difficulty_profile_from_config
+
+    base = AblationExperimentConfig(run_mode="quick", seeds=[0])
+    h1 = config_hash(base)
+    profile = difficulty_profile_from_config(base).bumped()
+    apply_difficulty_profile(base, profile)
+    h2 = config_hash(base)
+    assert h1 != h2
 
 
 def test_shared_init_validation() -> None:

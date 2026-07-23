@@ -30,6 +30,7 @@ from src.vlm.ablation.config import (
     build_decoder_config,
     build_vision_config,
     config_hash,
+    difficulty_profile_from_config,
     run_dir_for,
 )
 from src.vlm.ablation.eval import evaluate_model
@@ -73,6 +74,7 @@ def build_dataloaders(
     tokenizer: VQATokenizer,
 ) -> dict[str, DataLoader]:
     collate = partial(collate_vqa_batch, pad_token_id=tokenizer.pad_token_id)
+    profile = difficulty_profile_from_config(config)
     loaders: dict[str, DataLoader] = {}
     split_seeds = {
         "train": config.dataset_seed_offset,
@@ -92,6 +94,7 @@ def build_dataloaders(
             tokenizer=tokenizer,
             image_size=config.image_size,
             supervise_eos=config.supervise_eos,
+            profile=profile,
         )
         loaders[split] = DataLoader(
             dataset,
@@ -369,6 +372,7 @@ def train_variant_seed(
     peak_alloc = 0
     peak_reserved = 0
     train_start = time.perf_counter()
+    steps_to_threshold = {"70": None, "80": None, "90": None}
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
 
@@ -467,8 +471,30 @@ def train_variant_seed(
                     "global_step": global_step,
                     "loss": val_metrics["loss"],
                     "accuracy": val_metrics["accuracy"],
+                    "answer_token_nll": val_metrics.get("answer_token_nll"),
                     "family_accuracy": val_metrics["family_accuracy"],
+                    "level_accuracy": val_metrics.get("level_accuracy"),
+                    "hops_accuracy": val_metrics.get("hops_accuracy"),
+                    "held_out_accuracy": val_metrics.get("held_out_accuracy"),
+                    "visual_degraded_accuracy": val_metrics.get("visual_degraded_accuracy"),
                 },
+            )
+            for threshold, key in ((0.70, "70"), (0.80, "80"), (0.90, "90")):
+                if steps_to_threshold[key] is None and val_metrics["accuracy"] >= threshold:
+                    steps_to_threshold[key] = global_step
+            wandb_logger.log(
+                {
+                    "val/loss": val_metrics["loss"],
+                    "val/accuracy": val_metrics["accuracy"],
+                    "val/answer_token_nll": val_metrics.get("answer_token_nll"),
+                    "val/family_accuracy": val_metrics["family_accuracy"],
+                    "val/level_accuracy": val_metrics.get("level_accuracy"),
+                    "val/hops_accuracy": val_metrics.get("hops_accuracy"),
+                    "val/held_out_accuracy": val_metrics.get("held_out_accuracy"),
+                    "val/visual_degraded_accuracy": val_metrics.get("visual_degraded_accuracy"),
+                    "val/best_accuracy": best_val_accuracy if best_val_accuracy >= 0 else val_metrics["accuracy"],
+                },
+                step=global_step,
             )
             routing_summary = aggregate_routing_rows(val_metrics["routing"])
             append_jsonl(
@@ -484,9 +510,6 @@ def train_variant_seed(
 
             wandb_logger.log(
                 {
-                    "val/loss": val_metrics["loss"],
-                    "val/accuracy": val_metrics["accuracy"],
-                    "val/family_accuracy": val_metrics["family_accuracy"],
                     "val/best_accuracy": best_val_accuracy,
                     "encoder_routing/n_sites": len(routing_summary.get("encoder_routing", [])),
                     "decoder_routing/n_sites": len(routing_summary.get("decoder_routing", [])),
@@ -521,11 +544,15 @@ def train_variant_seed(
             amp_dtype=amp_dtype if config.mixed_precision else None,
             capture_routing=True,
         )
+        val_routing = aggregate_routing_rows(val_final["routing"])
+        test_routing = aggregate_routing_rows(test_final["routing"])
         routing_summary = {
-            "encoder_routing": aggregate_routing_rows(val_final["routing"])["encoder_routing"],
-            "decoder_routing": aggregate_routing_rows(val_final["routing"])["decoder_routing"],
-            "test_encoder_routing": aggregate_routing_rows(test_final["routing"])["encoder_routing"],
-            "test_decoder_routing": aggregate_routing_rows(test_final["routing"])["decoder_routing"],
+            "encoder_routing": val_routing["encoder_routing"],
+            "decoder_routing": val_routing["decoder_routing"],
+            "test_encoder_routing": test_routing["encoder_routing"],
+            "test_decoder_routing": test_routing["decoder_routing"],
+            "by_difficulty_validation": val_routing.get("by_difficulty", {}),
+            "by_difficulty_test": test_routing.get("by_difficulty", {}),
         }
         atomic_write_json(run_dir / "routing_summary.json", routing_summary)
 
@@ -538,10 +565,27 @@ def train_variant_seed(
             "decoder_residual": VARIANTS[variant]["decoder"],
             "validation_loss": val_final["loss"],
             "validation_accuracy": val_final["accuracy"],
+            "validation_answer_token_nll": val_final.get("answer_token_nll"),
             "test_loss": test_final["loss"],
             "test_accuracy": test_final["accuracy"],
+            "test_answer_token_nll": test_final.get("answer_token_nll"),
             "family_accuracy_validation": val_final["family_accuracy"],
             "family_accuracy_test": test_final["family_accuracy"],
+            "level_accuracy_validation": val_final.get("level_accuracy"),
+            "level_accuracy_test": test_final.get("level_accuracy"),
+            "hops_accuracy_validation": val_final.get("hops_accuracy"),
+            "hops_accuracy_test": test_final.get("hops_accuracy"),
+            "held_out_accuracy_validation": val_final.get("held_out_accuracy"),
+            "held_out_accuracy_test": test_final.get("held_out_accuracy"),
+            "visual_degraded_accuracy_validation": val_final.get("visual_degraded_accuracy"),
+            "visual_degraded_accuracy_test": test_final.get("visual_degraded_accuracy"),
+            "local_detail_accuracy_test": test_final.get("local_detail_accuracy"),
+            "one_hop_accuracy_test": test_final.get("compositional_accuracy"),
+            "multi_hop_accuracy_test": test_final.get("multi_hop_accuracy"),
+            "degradation_bin_accuracy_test": test_final.get("degradation_bin_accuracy"),
+            "steps_to_70_val_acc": steps_to_threshold["70"],
+            "steps_to_80_val_acc": steps_to_threshold["80"],
+            "steps_to_90_val_acc": steps_to_threshold["90"],
             "parameter_count": param_counts["total"],
             "parameter_increase_pct": param_increase_pct,
             "peak_allocated_bytes": peak_alloc,
@@ -564,9 +608,17 @@ def train_variant_seed(
             {
                 "final/validation_loss": final_metrics["validation_loss"],
                 "final/validation_accuracy": final_metrics["validation_accuracy"],
+                "final/validation_answer_token_nll": final_metrics["validation_answer_token_nll"],
                 "final/test_loss": final_metrics["test_loss"],
                 "final/test_accuracy": final_metrics["test_accuracy"],
+                "final/test_answer_token_nll": final_metrics["test_answer_token_nll"],
                 "final/family_accuracy_test": final_metrics["family_accuracy_test"],
+                "final/level_accuracy_test": final_metrics["level_accuracy_test"],
+                "final/hops_accuracy_test": final_metrics["hops_accuracy_test"],
+                "final/held_out_accuracy_test": final_metrics["held_out_accuracy_test"],
+                "final/steps_to_70_val_acc": final_metrics["steps_to_70_val_acc"],
+                "final/steps_to_80_val_acc": final_metrics["steps_to_80_val_acc"],
+                "final/steps_to_90_val_acc": final_metrics["steps_to_90_val_acc"],
                 "final/best_epoch": final_metrics["best_epoch"],
                 "final/best_validation_accuracy": final_metrics["best_validation_accuracy"],
                 "final/parameter_count": final_metrics["parameter_count"],
@@ -581,7 +633,13 @@ def train_variant_seed(
             {
                 "test/loss": test_final["loss"],
                 "test/accuracy": test_final["accuracy"],
+                "test/answer_token_nll": test_final.get("answer_token_nll"),
                 "test/family_accuracy": test_final["family_accuracy"],
+                "test/level_accuracy": test_final.get("level_accuracy"),
+                "test/hops_accuracy": test_final.get("hops_accuracy"),
+                "test/held_out_accuracy": test_final.get("held_out_accuracy"),
+                "test/visual_degraded_accuracy": test_final.get("visual_degraded_accuracy"),
+                "test/degradation_bin_accuracy": test_final.get("degradation_bin_accuracy"),
             },
             step=global_step,
         )
