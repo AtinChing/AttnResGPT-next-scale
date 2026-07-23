@@ -6,8 +6,10 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from src.utils.config import AttnResConfig, ModelConfig
 from src.models.vision_attnres import VisionConfig
+from src.utils.config import AttnResConfig, ModelConfig
+from src.vlm.clevr.official import CLEVR_SUBSETS
+from src.vlm.clevr.preprocess import PreprocessConfig
 
 VARIANTS: dict[str, dict[str, str]] = {
     "baseline": {"encoder": "baseline", "decoder": "baseline"},
@@ -21,24 +23,33 @@ VARIANTS: dict[str, dict[str, str]] = {
 
 PRIMARY_VARIANTS = ["baseline", "encoder_full", "decoder_full", "both_full"]
 BLOCK_VARIANTS = ["encoder_block", "decoder_block", "both_block"]
+STANDARD_VARIANTS = PRIMARY_VARIANTS + BLOCK_VARIANTS
 
-SMOKE_SIZES = {"train": 128, "validation": 64, "test": 64}
-QUICK_SIZES = {"train": 4_000, "validation": 800, "test": 800}
-FULL_SIZES = {"train": 12_000, "validation": 2_000, "test": 2_000}
+BenchmarkName = Literal["clevr_v1", "clevr_cogent_v1"]
+BenchmarkMode = Literal["smoke", "quick", "full"]
 
 
 @dataclass
 class AblationExperimentConfig:
-    run_mode: Literal["smoke", "quick", "full"] = "quick"
+    # Benchmark selection
+    benchmark: BenchmarkName = "clevr_v1"
+    benchmark_mode: BenchmarkMode = "quick"
+    run_mode: BenchmarkMode = "quick"  # alias kept for notebook compatibility
+    run_standard_clevr: bool = True
+    run_cogent: bool = True
+    subset_seed: int = 17
+
     resume: bool = True
     force_restart: bool = False
     run_primary_full_grid: bool = True
     run_block_grid: bool = True
+    run_primary_full_only: bool = False
     seeds: list[int] = field(default_factory=lambda: [0, 1, 2])
     primary_variants: list[str] = field(default_factory=lambda: list(PRIMARY_VARIANTS))
     block_variants: list[str] = field(default_factory=lambda: list(BLOCK_VARIANTS))
 
-    batch_size: int = 64
+    batch_size: int = 16
+    grad_accum_steps: int = 4
     num_workers: int = 2
     checkpoint_interval: int = 100
     evaluation_interval: int = 1
@@ -54,54 +65,45 @@ class AblationExperimentConfig:
     mixed_precision: bool = True
     amp_dtype: str = "auto"
     supervise_eos: bool = True
+    run_controls: bool = True
 
-    image_size: int = 64
-    patch_size: int = 8
+    # Tiny controlled VLM defaults for CLEVR (128x128 / 16x16 -> 64 patches)
+    image_size: int = 128
+    patch_size: int = 16
     vision_d_model: int = 128
-    vision_n_layers: int = 6
+    vision_n_layers: int = 10
     vision_n_heads: int = 4
     vision_d_ff: int = 512
     decoder_d_model: int = 128
-    decoder_n_layers: int = 6
+    decoder_n_layers: int = 10
     decoder_n_heads: int = 4
     decoder_d_ff: int = 512
     dropout: float = 0.0
-    num_blocks: int = 3
-    # Must fit vision prefix tokens + text. 64x64 / 8x8 = 64 patches, so 64 is too small.
-    max_seq_len: int = 128
-    text_context_budget: int = 32
-    dataset_seed_offset: int = 17
-    dataset_version: str = "hard_v1"
-    difficulty_bump_level: int = 0
-    max_objects: int = 6
-    min_objects_level2: int = 3
-    digit_scale: float = 1.0
-    distractor_count: int = 4
-    noise_scale: float = 1.0
-    blur_chance: float = 0.35
-    occlusion_chance: float = 0.35
-    contrast_chance: float = 0.35
-    overlap_jitter: float = 0.35
-    relation_extra_hops: int = 0
-    sanity_check_baseline: bool = True
-    sanity_max_bumps: int = 3
-    sanity_l45_accuracy_ceiling: float = 0.95
+    num_blocks: int = 5
+    max_seq_len: int = 160
+    text_context_budget: int = 96
 
+    # Filled after dataset preparation / identity hashing
     project_root: str = ""
+    subset_manifest_hash: str = ""
+    vocab_hash: str = ""
+    preprocess_hash: str = ""
+    dataset_version: str = "CLEVR_v1.0"
     train_size: int = 0
     validation_size: int = 0
     test_size: int = 0
 
-    # W&B (mirrors other notebooks; project is VLM-specific)
     wandb_enabled: bool = True
     wandb_project: str = "attnres-next-scale-vlm"
     wandb_entity: str = "atin5551-uc-davis"
-    wandb_mode: str = "auto"  # auto | online | offline | disabled
-    wandb_resume: str = "allow"  # allow | must | never
+    wandb_mode: str = "auto"
+    wandb_resume: str = "allow"
     wandb_tags: list[str] = field(default_factory=list)
-    wandb_log_interval: int = 1  # log train loss every N optimizer steps (1 = every step)
+    wandb_log_interval: int = 1
 
     def requested_variants(self) -> list[str]:
+        if self.run_primary_full_only:
+            return list(self.primary_variants)
         variants: list[str] = []
         if self.run_primary_full_grid:
             variants.extend(self.primary_variants)
@@ -109,71 +111,42 @@ class AblationExperimentConfig:
             variants.extend(self.block_variants)
         return variants
 
+    def preprocess_config(self) -> PreprocessConfig:
+        return PreprocessConfig(image_size=self.image_size)
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-def dataset_sizes_for_mode(run_mode: str) -> dict[str, int]:
-    if run_mode == "smoke":
-        return dict(SMOKE_SIZES)
-    if run_mode == "quick":
-        return dict(QUICK_SIZES)
-    if run_mode == "full":
-        return dict(FULL_SIZES)
-    raise ValueError(f"Unknown run_mode: {run_mode}")
-
-
 def resolve_experiment_config(config: AblationExperimentConfig) -> AblationExperimentConfig:
-    sizes = dataset_sizes_for_mode(config.run_mode)
-    config.train_size = sizes["train"]
-    config.validation_size = sizes["validation"]
-    config.test_size = sizes["test"]
-    if config.run_mode == "smoke":
-        config.batch_size = min(config.batch_size, 16)
+    # Keep run_mode / benchmark_mode synchronized.
+    mode = config.benchmark_mode or config.run_mode
+    config.benchmark_mode = mode
+    config.run_mode = mode
+    if config.run_primary_full_only:
+        config.run_block_grid = False
+        config.run_primary_full_grid = True
+    sizes = CLEVR_SUBSETS[mode]
+    config.train_size = sizes["train_images"]
+    config.validation_size = sizes["validation_images"]
+    config.test_size = sizes["test_images"]
+    if mode == "smoke":
+        config.batch_size = min(config.batch_size, 8)
         config.max_epochs = min(config.max_epochs, 3)
         config.num_workers = 0
+        config.grad_accum_steps = max(1, min(config.grad_accum_steps, 2))
     patches_per_side = config.image_size // config.patch_size
     num_patches = patches_per_side * patches_per_side
-    # Multi-hop questions are longer than the original toy prompts.
-    config.text_context_budget = max(config.text_context_budget, 48)
+    config.text_context_budget = max(config.text_context_budget, 96)
     minimum_seq_len = num_patches + config.text_context_budget
     if config.max_seq_len < minimum_seq_len:
         config.max_seq_len = minimum_seq_len
-    return config
-
-
-def difficulty_profile_from_config(config: AblationExperimentConfig):
-    from src.vlm.synthetic_vqa import DifficultyProfile
-
-    return DifficultyProfile(
-        dataset_version=config.dataset_version,
-        bump_level=config.difficulty_bump_level,
-        max_objects=config.max_objects,
-        min_objects_level2=config.min_objects_level2,
-        digit_scale=config.digit_scale,
-        distractor_count=config.distractor_count,
-        noise_scale=config.noise_scale,
-        blur_chance=config.blur_chance,
-        occlusion_chance=config.occlusion_chance,
-        contrast_chance=config.contrast_chance,
-        overlap_jitter=config.overlap_jitter,
-        relation_extra_hops=config.relation_extra_hops,
-    )
-
-
-def apply_difficulty_profile(config: AblationExperimentConfig, profile) -> AblationExperimentConfig:
-    config.dataset_version = profile.dataset_version
-    config.difficulty_bump_level = profile.bump_level
-    config.max_objects = profile.max_objects
-    config.min_objects_level2 = profile.min_objects_level2
-    config.digit_scale = profile.digit_scale
-    config.distractor_count = profile.distractor_count
-    config.noise_scale = profile.noise_scale
-    config.blur_chance = profile.blur_chance
-    config.occlusion_chance = profile.occlusion_chance
-    config.contrast_chance = profile.contrast_chance
-    config.overlap_jitter = profile.overlap_jitter
-    config.relation_extra_hops = profile.relation_extra_hops
+    if config.benchmark == "clevr_v1":
+        config.dataset_version = "CLEVR_v1.0"
+    else:
+        config.dataset_version = "CLEVR_CoGenT_v1.0"
+    preprocess = config.preprocess_config()
+    config.preprocess_hash = preprocess.config_hash()
     return config
 
 
@@ -183,9 +156,6 @@ def canonical_config_payload(config: AblationExperimentConfig) -> dict[str, Any]
         "project_root",
         "resume",
         "force_restart",
-        "sanity_check_baseline",
-        "sanity_max_bumps",
-        "sanity_l45_accuracy_ceiling",
         "wandb_enabled",
         "wandb_project",
         "wandb_entity",
@@ -193,6 +163,7 @@ def canonical_config_payload(config: AblationExperimentConfig) -> dict[str, Any]
         "wandb_resume",
         "wandb_tags",
         "wandb_log_interval",
+        "run_controls",
     ):
         payload.pop(key, None)
     return payload
@@ -252,5 +223,5 @@ def build_decoder_config(config: AblationExperimentConfig, residual: str, vocab_
     )
 
 
-def run_dir_for(project_root: Path, variant: str, seed: int, cfg_hash: str) -> Path:
-    return project_root / "runs" / variant / f"seed_{seed}" / cfg_hash
+def run_dir_for(project_root: Path, benchmark: str, variant: str, seed: int, cfg_hash: str) -> Path:
+    return Path(project_root) / "runs" / benchmark / variant / f"seed_{seed}" / cfg_hash

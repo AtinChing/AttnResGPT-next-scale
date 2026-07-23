@@ -63,6 +63,7 @@ def create_project_layout(project_root: Path) -> dict[str, Path]:
         "tables",
         "cache",
         "manifests",
+        "data",
     ]
     paths = {name: ensure_dir(project_root / name) for name in names}
     return paths

@@ -30,7 +30,6 @@ from src.vlm.ablation.config import (
     build_decoder_config,
     build_vision_config,
     config_hash,
-    difficulty_profile_from_config,
     run_dir_for,
 )
 from src.vlm.ablation.eval import evaluate_model
@@ -39,7 +38,9 @@ from src.vlm.ablation.io_utils import append_jsonl, atomic_write_json, ensure_di
 from src.vlm.ablation.manifest import ExperimentManifest
 from src.vlm.ablation.routing import aggregate_routing_rows
 from src.vlm.ablation.wandb_logger import AblationWandbLogger
-from src.vlm.synthetic_vqa import SyntheticVQADataset, VQATokenizer, collate_vqa_batch
+from src.vlm.clevr.dataset import CLEVRExampleDataset, collate_clevr_batch
+from src.vlm.clevr.prepare import PreparedBenchmark
+from src.vlm.clevr.validate import majority_answer_baseline
 
 
 def _select_amp_dtype(requested: str, device: torch.device) -> torch.dtype | None:
@@ -47,7 +48,6 @@ def _select_amp_dtype(requested: str, device: torch.device) -> torch.dtype | Non
         return None
     if requested == "auto":
         major, _ = torch.cuda.get_device_capability(device)
-        # bf16 is reliable on Ampere+ (sm80+); T4 is sm75 -> float16.
         return torch.bfloat16 if major >= 8 else torch.float16
     return amp_dtype_from_string(requested)
 
@@ -71,30 +71,22 @@ def build_scheduler(
 
 def build_dataloaders(
     config: AblationExperimentConfig,
-    tokenizer: VQATokenizer,
+    prepared: PreparedBenchmark,
+    *,
+    control_mode: str = "none",
 ) -> dict[str, DataLoader]:
-    collate = partial(collate_vqa_batch, pad_token_id=tokenizer.pad_token_id)
-    profile = difficulty_profile_from_config(config)
+    collate = partial(collate_clevr_batch, pad_token_id=prepared.tokenizer.pad_token_id)
     loaders: dict[str, DataLoader] = {}
-    split_seeds = {
-        "train": config.dataset_seed_offset,
-        "validation": config.dataset_seed_offset + 1,
-        "test": config.dataset_seed_offset + 2,
-    }
-    sizes = {
-        "train": config.train_size,
-        "validation": config.validation_size,
-        "test": config.test_size,
-    }
-    for split, size in sizes.items():
-        dataset = SyntheticVQADataset(
-            split=split,  # type: ignore[arg-type]
-            size=size,
-            split_seed=split_seeds[split],
-            tokenizer=tokenizer,
-            image_size=config.image_size,
+    for split, examples in prepared.split_examples.items():
+        dataset = CLEVRExampleDataset(
+            examples=examples,
+            image_root=prepared.image_root,
+            image_prefix=prepared.image_prefix_by_split[split],
+            tokenizer=prepared.tokenizer,
+            preprocess=prepared.preprocess,
             supervise_eos=config.supervise_eos,
-            profile=profile,
+            allow_unk=(split != "train"),
+            control_mode=control_mode if split != "train" else "none",
         )
         loaders[split] = DataLoader(
             dataset,
@@ -132,9 +124,44 @@ def build_model_for_variant(
     return model, init_meta
 
 
+def _run_controls(
+    *,
+    config: AblationExperimentConfig,
+    prepared: PreparedBenchmark,
+    model: TinyAttnResVLM,
+    device: torch.device,
+    amp_dtype: torch.dtype | None,
+) -> dict[str, Any]:
+    controls: dict[str, Any] = {}
+    controls["majority_answer"] = {
+        "validation": majority_answer_baseline(prepared.split_examples["train"], prepared.split_examples["validation"]),
+        "test": majority_answer_baseline(prepared.split_examples["train"], prepared.split_examples["test"]),
+    }
+    for mode in ("question_only", "blank_question"):
+        loaders = build_dataloaders(config, prepared, control_mode=mode)
+        controls[mode] = {
+            "validation": evaluate_model(
+                model,
+                loaders["validation"],
+                device=device,
+                amp_dtype=amp_dtype if config.mixed_precision else None,
+                capture_routing=False,
+            ),
+            "test": evaluate_model(
+                model,
+                loaders["test"],
+                device=device,
+                amp_dtype=amp_dtype if config.mixed_precision else None,
+                capture_routing=False,
+            ),
+        }
+    return controls
+
+
 def train_variant_seed(
     config: AblationExperimentConfig,
     *,
+    prepared: PreparedBenchmark,
     variant: str,
     seed: int,
     project_root: Path,
@@ -143,7 +170,7 @@ def train_variant_seed(
     device: torch.device,
 ) -> dict[str, Any]:
     cfg_hash = config_hash(config)
-    run_dir = run_dir_for(project_root, variant, seed, cfg_hash)
+    run_dir = run_dir_for(project_root, config.benchmark, variant, seed, cfg_hash)
     completed_marker = run_dir / "completed.marker"
     last_path = run_dir / "last.pt"
     best_path = run_dir / "best.pt"
@@ -167,8 +194,12 @@ def train_variant_seed(
         archive_run_dir(run_dir)
 
     ensure_dir(run_dir)
-    tokenizer = VQATokenizer()
-    loaders = build_dataloaders(config, tokenizer)
+    prepared.tokenizer.save(run_dir / "tokenizer.json")
+    atomic_write_json(run_dir / "subset_manifest.json", prepared.manifest)
+    atomic_write_json(run_dir / "preprocess.json", prepared.preprocess.to_dict())
+
+    loaders = build_dataloaders(config, prepared)
+    tokenizer = prepared.tokenizer
 
     seed_everything(seed, deterministic=True)
     reference, _ = build_model_for_variant(
@@ -195,7 +226,7 @@ def train_variant_seed(
         weight_decay=config.weight_decay,
         betas=(config.beta1, config.beta2),
     )
-    steps_per_epoch = max(1, len(loaders["train"]))
+    steps_per_epoch = max(1, math.ceil(len(loaders["train"]) / max(1, config.grad_accum_steps)))
     total_steps = steps_per_epoch * config.max_epochs
     warmup_steps = max(1, int(total_steps * config.warmup_fraction))
     scheduler = build_scheduler(
@@ -216,6 +247,7 @@ def train_variant_seed(
     examples_processed = 0
     elapsed_training_time = 0.0
     resumed = False
+    micro_step = 0
 
     if config.resume and last_path.exists() and not config.force_restart:
         checkpoint = load_checkpoint(last_path, map_location=device)
@@ -225,7 +257,7 @@ def train_variant_seed(
             seed=seed,
             config_hash=cfg_hash,
             source_code_hash=source_code_hash,
-            force_restart=False,
+            force_restart=config.force_restart,
         )
         restore_training_state(
             checkpoint,
@@ -239,12 +271,12 @@ def train_variant_seed(
         best_val_accuracy = float(checkpoint["best_val_accuracy"])
         bad_epochs = int(checkpoint["early_stopping_bad_epochs"])
         examples_processed = int(checkpoint["examples_processed"])
-        elapsed_training_time = float(checkpoint["elapsed_training_time"])
+        elapsed_training_time = float(checkpoint.get("elapsed_training_time", 0.0))
         resumed = True
 
     param_counts = count_parameters(model)
-    baseline_params = count_parameters(reference)
-    param_increase_pct = 100.0 * (param_counts["total"] - baseline_params["total"]) / max(1, baseline_params["total"])
+    baseline_params = count_parameters(reference)["total"]
+    param_increase_pct = 100.0 * (param_counts["total"] - baseline_params) / max(1, baseline_params)
 
     wandb_logger = AblationWandbLogger(
         config=config,
@@ -253,55 +285,16 @@ def train_variant_seed(
         config_hash=cfg_hash,
         run_dir=run_dir,
         extra_config={
+            "benchmark": config.benchmark,
+            "dataset_version": config.dataset_version,
+            "subset_manifest_hash": config.subset_manifest_hash,
+            "vocab_hash": config.vocab_hash,
+            "preprocess_hash": config.preprocess_hash,
             "parameter_count": param_counts,
             "parameter_increase_pct": param_increase_pct,
-            "amp_dtype": str(amp_dtype),
-            "source_code_hash": source_code_hash,
-            "resumed": resumed,
-        },
-    )
-    wandb_logger.update_summary(
-        {
-            "variant": variant,
-            "seed": seed,
-            "encoder_residual": VARIANTS[variant]["encoder"],
-            "decoder_residual": VARIANTS[variant]["decoder"],
-            "parameter_count": param_counts["total"],
-            "parameter_increase_pct": param_increase_pct,
-            "device": str(device),
-            "amp_dtype": str(amp_dtype),
-            "resumed": resumed,
-            **wandb_logger.metadata(),
-        }
-    )
-
-    atomic_write_json(
-        run_dir / "config.json",
-        {
-            "experiment": config.to_dict(),
-            "variant": variant,
-            "seed": seed,
-            "config_hash": cfg_hash,
-            "source_code_hash": source_code_hash,
             "init_validation": init_meta,
-            "parameter_count": param_counts,
-            "parameter_increase_pct": param_increase_pct,
-            "amp_dtype": str(amp_dtype),
-            "wandb": wandb_logger.metadata(),
+            "source_code_hash": source_code_hash,
         },
-    )
-
-    manifest.upsert(
-        variant,
-        seed,
-        cfg_hash,
-        status="running",
-        run_directory=str(run_dir),
-        latest_checkpoint=str(last_path) if last_path.exists() else None,
-        best_checkpoint=str(best_path) if best_path.exists() else None,
-        current_epoch=start_epoch,
-        global_step=global_step,
-        best_validation_accuracy=best_val_accuracy if best_val_accuracy >= 0 else None,
     )
 
     def _save(path: Path, *, epoch: int, batch_index: int, status: str = "running") -> None:
@@ -318,33 +311,23 @@ def train_variant_seed(
             examples_processed=examples_processed,
             elapsed_training_time=elapsed_training_time,
             model_config={
-                "encoder_residual": model.encoder_residual,
-                "decoder_residual": model.decoder_residual,
-                "vision": model.vision_config.__dict__,
-                "decoder": model.decoder_config.__dict__,
+                "variant": variant,
+                "benchmark": config.benchmark,
+                "dataset_version": config.dataset_version,
+                "benchmark_mode": config.benchmark_mode,
+                "subset_manifest_hash": config.subset_manifest_hash,
+                "vocab_hash": config.vocab_hash,
+                "preprocess_hash": config.preprocess_hash,
+                "source_code_hash": source_code_hash,
             },
-            dataset_config={
-                "train_size": config.train_size,
-                "validation_size": config.validation_size,
-                "test_size": config.test_size,
-                "image_size": config.image_size,
-            },
-            tokenizer_vocab=tokenizer.vocab,
+            dataset_config=prepared.to_meta(),
+            tokenizer_vocab=tokenizer.token_to_id,
             variant=variant,
             seed=seed,
             config_hash=cfg_hash,
             source_code_hash=source_code_hash,
             status=status,
         )
-        # Dataclass nested objects are not JSON-safe in torch save metadata; convert lightly.
-        payload["model_config"]["vision"] = {
-            key: (value if not hasattr(value, "__dict__") else value.__dict__)
-            for key, value in model.vision_config.__dict__.items()
-        }
-        payload["model_config"]["decoder"] = {
-            key: (value if not hasattr(value, "__dict__") else value.__dict__)
-            for key, value in model.decoder_config.__dict__.items()
-        }
         save_checkpoint(path, payload)
         write_status(
             run_dir,
@@ -353,110 +336,73 @@ def train_variant_seed(
                 "epoch": epoch,
                 "global_step": global_step,
                 "best_val_accuracy": best_val_accuracy,
-                "examples_processed": examples_processed,
+                "checkpoint": str(path),
             },
-        )
-        manifest.upsert(
-            variant,
-            seed,
-            cfg_hash,
-            status=status if status != "running" else "running",
-            run_directory=str(run_dir),
-            latest_checkpoint=str(last_path),
-            best_checkpoint=str(best_path) if best_path.exists() else None,
-            current_epoch=epoch,
-            global_step=global_step,
-            best_validation_accuracy=best_val_accuracy if best_val_accuracy >= 0 else None,
         )
 
     peak_alloc = 0
     peak_reserved = 0
     train_start = time.perf_counter()
-    steps_to_threshold = {"70": None, "80": None, "90": None}
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
 
     try:
         for epoch in range(start_epoch, config.max_epochs):
             model.train()
+            epoch_t0 = time.perf_counter()
             epoch_loss = 0.0
             epoch_examples = 0
-            epoch_t0 = time.perf_counter()
+            optimizer.zero_grad(set_to_none=True)
             for batch_index, batch in enumerate(loaders["train"]):
-                pixel_values = batch["pixel_values"].to(device, non_blocking=True)
-                input_ids = batch["input_ids"].to(device, non_blocking=True)
-                targets = batch["targets"].to(device, non_blocking=True)
-
-                optimizer.zero_grad(set_to_none=True)
+                pixel_values = batch["pixel_values"].to(device)
+                input_ids = batch["input_ids"].to(device)
+                targets = batch["targets"].to(device)
                 autocast = (
                     torch.autocast(device_type="cuda", dtype=amp_dtype, enabled=amp_dtype is not None)
                     if device.type == "cuda" and config.mixed_precision
                     else nullcontext()
                 )
                 with autocast:
-                    output = model(
-                        pixel_values=pixel_values,
-                        input_ids=input_ids,
-                        targets=targets,
-                        return_aux=False,
-                    )
-                    loss = output["loss"]
+                    output = model(pixel_values=pixel_values, input_ids=input_ids, targets=targets)
+                    loss = output["loss"] / max(1, config.grad_accum_steps)
                 if scaler.is_enabled():
                     scaler.scale(loss).backward()
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
-                    scaler.step(optimizer)
-                    scaler.update()
                 else:
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
-                    optimizer.step()
-                scheduler.step()
 
+                micro_step += 1
                 batch_size = input_ids.size(0)
-                epoch_loss += float(loss.item()) * batch_size
+                epoch_loss += float(output["loss"].item()) * batch_size
                 epoch_examples += batch_size
                 examples_processed += batch_size
-                global_step += 1
 
-                if config.wandb_log_interval > 0 and global_step % config.wandb_log_interval == 0:
-                    wandb_logger.log(
-                        {
-                            "train/loss": float(loss.item()),
-                            "train/learning_rate": float(optimizer.param_groups[0]["lr"]),
-                            "train/epoch": epoch,
-                        },
-                        step=global_step,
-                    )
-
-                if config.checkpoint_interval > 0 and global_step % config.checkpoint_interval == 0:
-                    elapsed_training_time += time.perf_counter() - epoch_t0
-                    _save(last_path, epoch=epoch, batch_index=batch_index)
-                    epoch_t0 = time.perf_counter()
+                if micro_step % max(1, config.grad_accum_steps) == 0:
+                    if scaler.is_enabled():
+                        scaler.unscale_(optimizer)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
+                        scaler.step(optimizer)
+                        scaler.update()
+                    else:
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
+                        optimizer.step()
+                    scheduler.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    global_step += 1
+                    if config.wandb_log_interval > 0 and global_step % config.wandb_log_interval == 0:
+                        wandb_logger.log(
+                            {
+                                "train/loss": float(output["loss"].item()),
+                                "train/learning_rate": float(optimizer.param_groups[0]["lr"]),
+                                "train/epoch": epoch,
+                            },
+                            step=global_step,
+                        )
+                    if config.checkpoint_interval > 0 and global_step % config.checkpoint_interval == 0:
+                        elapsed_training_time += time.perf_counter() - epoch_t0
+                        _save(last_path, epoch=epoch, batch_index=batch_index)
+                        epoch_t0 = time.perf_counter()
 
             elapsed_training_time += time.perf_counter() - epoch_t0
-            train_loss = epoch_loss / max(1, epoch_examples)
-            throughput = epoch_examples / max(1e-6, time.perf_counter() - (train_start if epoch == start_epoch else epoch_t0))
-            append_jsonl(
-                run_dir / "train_metrics.jsonl",
-                {
-                    "epoch": epoch,
-                    "global_step": global_step,
-                    "loss": train_loss,
-                    "examples": epoch_examples,
-                    "examples_per_sec": throughput,
-                },
-            )
-            wandb_logger.log(
-                {
-                    "train/epoch_loss": train_loss,
-                    "train/examples_per_sec": throughput,
-                    "train/epoch": epoch,
-                },
-                step=global_step,
-            )
-
-            _save(last_path, epoch=epoch + 1, batch_index=0)
             val_metrics = evaluate_model(
                 model,
                 loaders["validation"],
@@ -472,34 +418,24 @@ def train_variant_seed(
                     "loss": val_metrics["loss"],
                     "accuracy": val_metrics["accuracy"],
                     "answer_token_nll": val_metrics.get("answer_token_nll"),
-                    "family_accuracy": val_metrics["family_accuracy"],
-                    "level_accuracy": val_metrics.get("level_accuracy"),
-                    "hops_accuracy": val_metrics.get("hops_accuracy"),
-                    "held_out_accuracy": val_metrics.get("held_out_accuracy"),
-                    "visual_degraded_accuracy": val_metrics.get("visual_degraded_accuracy"),
+                    "category_accuracy": val_metrics.get("category_accuracy"),
+                    "program_length_accuracy": val_metrics.get("program_length_accuracy"),
+                    "dependency_depth_accuracy": val_metrics.get("dependency_depth_accuracy"),
                 },
-            )
-            for threshold, key in ((0.70, "70"), (0.80, "80"), (0.90, "90")):
-                if steps_to_threshold[key] is None and val_metrics["accuracy"] >= threshold:
-                    steps_to_threshold[key] = global_step
-            wandb_logger.log(
-                {
-                    "val/loss": val_metrics["loss"],
-                    "val/accuracy": val_metrics["accuracy"],
-                    "val/answer_token_nll": val_metrics.get("answer_token_nll"),
-                    "val/family_accuracy": val_metrics["family_accuracy"],
-                    "val/level_accuracy": val_metrics.get("level_accuracy"),
-                    "val/hops_accuracy": val_metrics.get("hops_accuracy"),
-                    "val/held_out_accuracy": val_metrics.get("held_out_accuracy"),
-                    "val/visual_degraded_accuracy": val_metrics.get("visual_degraded_accuracy"),
-                    "val/best_accuracy": best_val_accuracy if best_val_accuracy >= 0 else val_metrics["accuracy"],
-                },
-                step=global_step,
             )
             routing_summary = aggregate_routing_rows(val_metrics["routing"])
             append_jsonl(
                 run_dir / "routing_metrics.jsonl",
                 {"epoch": epoch, "global_step": global_step, **routing_summary},
+            )
+            wandb_logger.log(
+                {
+                    "val/loss": val_metrics["loss"],
+                    "val/accuracy": val_metrics["accuracy"],
+                    "val/answer_token_nll": val_metrics.get("answer_token_nll"),
+                    "val/category_accuracy": val_metrics.get("family_accuracy"),
+                },
+                step=global_step,
             )
             if val_metrics["accuracy"] > best_val_accuracy:
                 best_val_accuracy = float(val_metrics["accuracy"])
@@ -507,25 +443,13 @@ def train_variant_seed(
                 _save(best_path, epoch=epoch + 1, batch_index=0)
             else:
                 bad_epochs += 1
-
-            wandb_logger.log(
-                {
-                    "val/best_accuracy": best_val_accuracy,
-                    "encoder_routing/n_sites": len(routing_summary.get("encoder_routing", [])),
-                    "decoder_routing/n_sites": len(routing_summary.get("decoder_routing", [])),
-                },
-                step=global_step,
-            )
             _save(last_path, epoch=epoch + 1, batch_index=0)
-
             if device.type == "cuda":
                 peak_alloc = max(peak_alloc, int(torch.cuda.max_memory_allocated(device)))
                 peak_reserved = max(peak_reserved, int(torch.cuda.max_memory_reserved(device)))
-
             if bad_epochs >= config.early_stopping_patience:
                 break
 
-        # Final evaluation on best checkpoint when available.
         if best_path.exists():
             best_ckpt = load_checkpoint(best_path, map_location=device)
             model.load_state_dict(best_ckpt["model"])
@@ -551,16 +475,38 @@ def train_variant_seed(
             "decoder_routing": val_routing["decoder_routing"],
             "test_encoder_routing": test_routing["encoder_routing"],
             "test_decoder_routing": test_routing["decoder_routing"],
-            "by_difficulty_validation": val_routing.get("by_difficulty", {}),
-            "by_difficulty_test": test_routing.get("by_difficulty", {}),
+            "by_program_depth_validation": val_routing.get("by_program_depth", {}),
+            "by_program_depth_test": test_routing.get("by_program_depth", {}),
         }
         atomic_write_json(run_dir / "routing_summary.json", routing_summary)
 
+        controls = {}
+        if config.run_controls:
+            controls = _run_controls(
+                config=config,
+                prepared=prepared,
+                model=model,
+                device=device,
+                amp_dtype=amp_dtype,
+            )
+            atomic_write_json(run_dir / "controls.json", controls)
+
         duration = elapsed_training_time
+        a_to_b_drop = None
+        if config.benchmark == "clevr_cogent_v1":
+            a_to_b_drop = float(val_final["accuracy"]) - float(test_final["accuracy"])
+
         final_metrics = {
             "variant": variant,
             "seed": seed,
+            "benchmark": config.benchmark,
+            "dataset_version": config.dataset_version,
+            "benchmark_mode": config.benchmark_mode,
             "config_hash": cfg_hash,
+            "subset_manifest_hash": config.subset_manifest_hash,
+            "vocab_hash": config.vocab_hash,
+            "preprocess_hash": config.preprocess_hash,
+            "source_code_hash": source_code_hash,
             "encoder_residual": VARIANTS[variant]["encoder"],
             "decoder_residual": VARIANTS[variant]["decoder"],
             "validation_loss": val_final["loss"],
@@ -569,35 +515,45 @@ def train_variant_seed(
             "test_loss": test_final["loss"],
             "test_accuracy": test_final["accuracy"],
             "test_answer_token_nll": test_final.get("answer_token_nll"),
-            "family_accuracy_validation": val_final["family_accuracy"],
-            "family_accuracy_test": test_final["family_accuracy"],
-            "level_accuracy_validation": val_final.get("level_accuracy"),
-            "level_accuracy_test": test_final.get("level_accuracy"),
-            "hops_accuracy_validation": val_final.get("hops_accuracy"),
-            "hops_accuracy_test": test_final.get("hops_accuracy"),
-            "held_out_accuracy_validation": val_final.get("held_out_accuracy"),
-            "held_out_accuracy_test": test_final.get("held_out_accuracy"),
-            "visual_degraded_accuracy_validation": val_final.get("visual_degraded_accuracy"),
-            "visual_degraded_accuracy_test": test_final.get("visual_degraded_accuracy"),
-            "local_detail_accuracy_test": test_final.get("local_detail_accuracy"),
-            "one_hop_accuracy_test": test_final.get("compositional_accuracy"),
-            "multi_hop_accuracy_test": test_final.get("multi_hop_accuracy"),
-            "degradation_bin_accuracy_test": test_final.get("degradation_bin_accuracy"),
-            "steps_to_70_val_acc": steps_to_threshold["70"],
-            "steps_to_80_val_acc": steps_to_threshold["80"],
-            "steps_to_90_val_acc": steps_to_threshold["90"],
+            "test_label": (
+                "held_out_official_validation_subset"
+                if config.benchmark == "clevr_v1"
+                else "condition_B_validation_subset"
+            ),
+            "condition_A_validation_accuracy": val_final["accuracy"] if config.benchmark == "clevr_cogent_v1" else None,
+            "condition_B_test_accuracy": test_final["accuracy"] if config.benchmark == "clevr_cogent_v1" else None,
+            "a_to_b_accuracy_drop": a_to_b_drop,
+            "category_accuracy_validation": val_final.get("category_accuracy"),
+            "category_accuracy_test": test_final.get("category_accuracy"),
+            "program_length_accuracy_test": test_final.get("program_length_accuracy"),
+            "dependency_depth_accuracy_test": test_final.get("dependency_depth_accuracy"),
+            "question_family_accuracy_test": test_final.get("question_family_accuracy"),
+            "shape_accuracy_test": test_final.get("shape_accuracy"),
+            "family_accuracy_test": test_final.get("family_accuracy"),
+            "controls": {
+                key: {
+                    "validation_accuracy": (value.get("validation") or {}).get("accuracy")
+                    if isinstance(value, dict) and "validation" in value
+                    else (value.get("validation") or {}).get("accuracy"),
+                    "test_accuracy": (value.get("test") or {}).get("accuracy"),
+                }
+                if key != "majority_answer"
+                else value
+                for key, value in controls.items()
+            },
             "parameter_count": param_counts["total"],
             "parameter_increase_pct": param_increase_pct,
             "peak_allocated_bytes": peak_alloc,
             "peak_reserved_bytes": peak_reserved,
             "examples_per_sec": examples_processed / max(1e-6, duration),
             "training_duration_sec": duration,
-            "best_epoch": start_epoch,  # overwritten below from best checkpoint when present
+            "best_epoch": start_epoch,
             "best_validation_accuracy": best_val_accuracy,
             "checkpoint_last": str(last_path),
             "checkpoint_best": str(best_path),
             "resumed": resumed,
             "init_validation": init_meta,
+            "label": "compute_constrained_official_subset",
         }
         if best_path.exists():
             best_ckpt = load_checkpoint(best_path, map_location="cpu")
@@ -606,42 +562,11 @@ def train_variant_seed(
         atomic_write_json(run_dir / "final_test_metrics.json", final_metrics)
         wandb_logger.update_summary(
             {
-                "final/validation_loss": final_metrics["validation_loss"],
                 "final/validation_accuracy": final_metrics["validation_accuracy"],
-                "final/validation_answer_token_nll": final_metrics["validation_answer_token_nll"],
-                "final/test_loss": final_metrics["test_loss"],
                 "final/test_accuracy": final_metrics["test_accuracy"],
                 "final/test_answer_token_nll": final_metrics["test_answer_token_nll"],
-                "final/family_accuracy_test": final_metrics["family_accuracy_test"],
-                "final/level_accuracy_test": final_metrics["level_accuracy_test"],
-                "final/hops_accuracy_test": final_metrics["hops_accuracy_test"],
-                "final/held_out_accuracy_test": final_metrics["held_out_accuracy_test"],
-                "final/steps_to_70_val_acc": final_metrics["steps_to_70_val_acc"],
-                "final/steps_to_80_val_acc": final_metrics["steps_to_80_val_acc"],
-                "final/steps_to_90_val_acc": final_metrics["steps_to_90_val_acc"],
-                "final/best_epoch": final_metrics["best_epoch"],
-                "final/best_validation_accuracy": final_metrics["best_validation_accuracy"],
-                "final/parameter_count": final_metrics["parameter_count"],
-                "final/parameter_increase_pct": final_metrics["parameter_increase_pct"],
-                "final/peak_allocated_bytes": final_metrics["peak_allocated_bytes"],
-                "final/training_duration_sec": final_metrics["training_duration_sec"],
-                "checkpoint_best": final_metrics["checkpoint_best"],
-                "checkpoint_last": final_metrics["checkpoint_last"],
+                "final/a_to_b_accuracy_drop": final_metrics["a_to_b_accuracy_drop"],
             }
-        )
-        wandb_logger.log(
-            {
-                "test/loss": test_final["loss"],
-                "test/accuracy": test_final["accuracy"],
-                "test/answer_token_nll": test_final.get("answer_token_nll"),
-                "test/family_accuracy": test_final["family_accuracy"],
-                "test/level_accuracy": test_final.get("level_accuracy"),
-                "test/hops_accuracy": test_final.get("hops_accuracy"),
-                "test/held_out_accuracy": test_final.get("held_out_accuracy"),
-                "test/visual_degraded_accuracy": test_final.get("visual_degraded_accuracy"),
-                "test/degradation_bin_accuracy": test_final.get("degradation_bin_accuracy"),
-            },
-            step=global_step,
         )
         _save(last_path, epoch=config.max_epochs, batch_index=0, status="completed")
         mark_completed(run_dir)
@@ -659,7 +584,7 @@ def train_variant_seed(
         )
         wandb_logger.finish(status="completed")
         return {"status": "completed", "run_dir": str(run_dir), "metrics": final_metrics, "resumed": resumed}
-    except Exception as exc:  # noqa: BLE001 - persist failure into manifest for resume UX
+    except Exception as exc:  # noqa: BLE001
         write_status(run_dir, {"status": "failed", "error": str(exc)})
         if last_path.exists() or global_step > 0:
             try:
@@ -674,11 +599,6 @@ def train_variant_seed(
             run_directory=str(run_dir),
             latest_checkpoint=str(last_path) if last_path.exists() else None,
             best_checkpoint=str(best_path) if best_path.exists() else None,
-            current_epoch=start_epoch,
-            global_step=global_step,
-            best_validation_accuracy=best_val_accuracy if best_val_accuracy >= 0 else None,
-            error_message=str(exc),
         )
-        wandb_logger.update_summary({"error_message": str(exc)})
         wandb_logger.finish(status="failed")
         raise

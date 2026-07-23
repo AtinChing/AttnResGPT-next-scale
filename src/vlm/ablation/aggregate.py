@@ -10,23 +10,23 @@ import numpy as np
 from src.vlm.ablation.io_utils import atomic_write_json, ensure_dir
 
 
-FAMILY_KEYS = {
-    "local_detail": "local_detail_accuracy",
-    "attribute": "attribute_accuracy",
-    "counting": "counting_accuracy",
-    "location": "location_accuracy",
-    "relation": "relation_accuracy",
-    "compositional": "compositional_accuracy",
-    "multi_hop": "multi_hop_accuracy",
-}
+def _acc(payload: Any) -> float | None:
+    if payload is None:
+        return None
+    if isinstance(payload, (int, float)):
+        return float(payload)
+    if isinstance(payload, dict) and "accuracy" in payload:
+        return float(payload["accuracy"])
+    return None
 
 
 def _flatten_run_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
-    family = metrics.get("family_accuracy_test", {}) or {}
-    levels = metrics.get("level_accuracy_test", {}) or {}
-    hops = metrics.get("hops_accuracy_test", {}) or {}
-    deg = metrics.get("degradation_bin_accuracy_test", {}) or {}
+    categories = metrics.get("category_accuracy_test") or {}
+    lengths = metrics.get("program_length_accuracy_test") or {}
+    depths = metrics.get("dependency_depth_accuracy_test") or {}
+    shapes = metrics.get("shape_accuracy_test") or {}
     row = {
+        "benchmark": metrics.get("benchmark"),
         "variant": metrics.get("variant"),
         "seed": metrics.get("seed"),
         "encoder_residual": metrics.get("encoder_residual"),
@@ -37,14 +37,9 @@ def _flatten_run_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         "test_accuracy": metrics.get("test_accuracy"),
         "test_loss": metrics.get("test_loss"),
         "test_answer_token_nll": metrics.get("test_answer_token_nll"),
-        "held_out_accuracy": metrics.get("held_out_accuracy_test"),
-        "visual_degraded_accuracy": metrics.get("visual_degraded_accuracy_test"),
-        "local_detail_accuracy_metric": metrics.get("local_detail_accuracy_test"),
-        "one_hop_accuracy": metrics.get("one_hop_accuracy_test"),
-        "multi_hop_accuracy_metric": metrics.get("multi_hop_accuracy_test"),
-        "steps_to_70_val_acc": metrics.get("steps_to_70_val_acc"),
-        "steps_to_80_val_acc": metrics.get("steps_to_80_val_acc"),
-        "steps_to_90_val_acc": metrics.get("steps_to_90_val_acc"),
+        "condition_A_validation_accuracy": metrics.get("condition_A_validation_accuracy"),
+        "condition_B_test_accuracy": metrics.get("condition_B_test_accuracy"),
+        "a_to_b_accuracy_drop": metrics.get("a_to_b_accuracy_drop"),
         "parameter_count": metrics.get("parameter_count"),
         "parameter_increase_pct": metrics.get("parameter_increase_pct"),
         "peak_gpu_memory_bytes": metrics.get("peak_allocated_bytes"),
@@ -52,24 +47,34 @@ def _flatten_run_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         "training_duration_sec": metrics.get("training_duration_sec"),
         "best_epoch": metrics.get("best_epoch"),
         "config_hash": metrics.get("config_hash"),
+        "subset_manifest_hash": metrics.get("subset_manifest_hash"),
     }
-    for family_name, column in FAMILY_KEYS.items():
-        row[column] = family.get(family_name)
-    for level in ("1", "2", "3", "4", "5"):
-        row[f"level_{level}_accuracy"] = levels.get(level)
-    for hop in ("0", "1", "2", "3"):
-        row[f"hops_{hop}_accuracy"] = hops.get(hop)
-    for bucket in ("low", "mid", "high"):
-        row[f"degradation_{bucket}_accuracy"] = deg.get(bucket)
+    for category in (
+        "attribute_query",
+        "counting",
+        "existence",
+        "integer_comparison",
+        "attribute_comparison",
+    ):
+        row[f"category_{category}_accuracy"] = _acc(categories.get(category))
+    for length_bin in ("1-5", "6-10", "11-15", "16+"):
+        row[f"program_length_{length_bin}_accuracy"] = _acc(lengths.get(length_bin))
+    for depth_bin in ("1-3", "4-6", "7-9", "10+"):
+        row[f"dependency_depth_{depth_bin}_accuracy"] = _acc(depths.get(depth_bin))
+    for shape in ("cube", "cylinder", "sphere"):
+        row[f"shape_{shape}_accuracy"] = _acc(shapes.get(shape))
     return row
 
 
-def collect_run_rows(project_root: Path, config_hash: str) -> list[dict[str, Any]]:
+def collect_run_rows(project_root: Path, config_hash: str, *, benchmark: str | None = None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     runs_root = Path(project_root) / "runs"
     if not runs_root.exists():
         return rows
-    for metrics_path in runs_root.glob(f"*/*/{config_hash}/final_test_metrics.json"):
+    pattern = f"*/*/{config_hash}/final_test_metrics.json"
+    if benchmark:
+        pattern = f"{benchmark}/*/*/{config_hash}/final_test_metrics.json"
+    for metrics_path in runs_root.glob(pattern):
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         rows.append(_flatten_run_metrics(metrics))
     return rows
@@ -92,48 +97,7 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_variant: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         by_variant.setdefault(str(row["variant"]), []).append(row)
-
-    numeric_keys = [
-        "validation_accuracy",
-        "validation_loss",
-        "validation_answer_token_nll",
-        "test_accuracy",
-        "test_loss",
-        "test_answer_token_nll",
-        "held_out_accuracy",
-        "visual_degraded_accuracy",
-        "local_detail_accuracy",
-        "attribute_accuracy",
-        "counting_accuracy",
-        "location_accuracy",
-        "relation_accuracy",
-        "compositional_accuracy",
-        "multi_hop_accuracy",
-        "local_detail_accuracy_metric",
-        "one_hop_accuracy",
-        "multi_hop_accuracy_metric",
-        "level_1_accuracy",
-        "level_2_accuracy",
-        "level_3_accuracy",
-        "level_4_accuracy",
-        "level_5_accuracy",
-        "hops_0_accuracy",
-        "hops_1_accuracy",
-        "hops_2_accuracy",
-        "hops_3_accuracy",
-        "degradation_low_accuracy",
-        "degradation_mid_accuracy",
-        "degradation_high_accuracy",
-        "steps_to_70_val_acc",
-        "steps_to_80_val_acc",
-        "steps_to_90_val_acc",
-        "parameter_count",
-        "parameter_increase_pct",
-        "peak_gpu_memory_bytes",
-        "throughput_examples_per_sec",
-        "training_duration_sec",
-        "best_epoch",
-    ]
+    numeric_keys = [key for key in (rows[0].keys() if rows else []) if key not in {"benchmark", "variant", "seed", "encoder_residual", "decoder_residual", "config_hash", "subset_manifest_hash"}]
     aggregated: list[dict[str, Any]] = []
     for variant, variant_rows in sorted(by_variant.items()):
         payload: dict[str, Any] = {
@@ -141,7 +105,8 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "n_seeds": len(variant_rows),
             "encoder_residual": variant_rows[0].get("encoder_residual"),
             "decoder_residual": variant_rows[0].get("decoder_residual"),
-            "label": "exploratory_mean_std_over_seeds",
+            "benchmark": variant_rows[0].get("benchmark"),
+            "label": "exploratory_mean_std_over_seeds_official_subset",
         }
         for key in numeric_keys:
             values = [float(row[key]) for row in variant_rows if row.get(key) is not None]
@@ -157,9 +122,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return aggregated
 
 
-def write_tables(project_root: Path, config_hash: str) -> dict[str, Path]:
-    rows = collect_run_rows(project_root, config_hash)
-    tables_dir = ensure_dir(Path(project_root) / "tables" / config_hash)
+def write_tables(project_root: Path, config_hash: str, *, benchmark: str) -> dict[str, Path]:
+    rows = collect_run_rows(project_root, config_hash, benchmark=benchmark)
+    tables_dir = ensure_dir(Path(project_root) / "tables" / benchmark / config_hash)
     all_path = tables_dir / "all_runs.csv"
     agg_path = tables_dir / "aggregate_results.csv"
     write_csv(all_path, rows)

@@ -132,13 +132,12 @@ def test_hard_vqa_levels_and_held_out() -> None:
     assert held > 0
 
 
-def test_config_hash_changes_with_difficulty_bump() -> None:
-    from src.vlm.ablation.config import AblationExperimentConfig, apply_difficulty_profile, config_hash, difficulty_profile_from_config
+def test_clevr_config_hash_includes_subset_identity() -> None:
+    from src.vlm.ablation.config import AblationExperimentConfig, config_hash, resolve_experiment_config
 
-    base = AblationExperimentConfig(run_mode="quick", seeds=[0])
+    base = resolve_experiment_config(AblationExperimentConfig(benchmark_mode="quick", seeds=[0]))
     h1 = config_hash(base)
-    profile = difficulty_profile_from_config(base).bumped()
-    apply_difficulty_profile(base, profile)
+    base.subset_manifest_hash = "deadbeef"
     h2 = config_hash(base)
     assert h1 != h2
 
