@@ -67,7 +67,9 @@ class AblationExperimentConfig:
     decoder_d_ff: int = 512
     dropout: float = 0.0
     num_blocks: int = 3
-    max_seq_len: int = 64
+    # Must fit vision prefix tokens + text. 64x64 / 8x8 = 64 patches, so 64 is too small.
+    max_seq_len: int = 128
+    text_context_budget: int = 32
     dataset_seed_offset: int = 17
 
     project_root: str = ""
@@ -115,6 +117,11 @@ def resolve_experiment_config(config: AblationExperimentConfig) -> AblationExper
         config.batch_size = min(config.batch_size, 16)
         config.max_epochs = min(config.max_epochs, 3)
         config.num_workers = 0
+    patches_per_side = config.image_size // config.patch_size
+    num_patches = patches_per_side * patches_per_side
+    minimum_seq_len = num_patches + config.text_context_budget
+    if config.max_seq_len < minimum_seq_len:
+        config.max_seq_len = minimum_seq_len
     return config
 
 
