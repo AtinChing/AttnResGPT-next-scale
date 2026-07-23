@@ -8,16 +8,155 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoModel, AutoProcessor
+
+try:
+    from transformers import AutoModel, AutoProcessor
+except ImportError:  # pragma: no cover - optional for TinyAttnResVLM-only workflows
+    AutoModel = None  # type: ignore[assignment,misc]
+    AutoProcessor = None  # type: ignore[assignment,misc]
 
 from src.metrics.norms import perplexity_from_loss
-from src.models.attnres import GPTAttnRes
+from src.models.attnres import DepthAttentionResidual, GPTAttnRes, GPTBlockAttnRes
 from src.models.baseline import GPTBaseline
-from src.utils.config import ModelConfig
+from src.models.vision_attnres import VisionConfig, build_vision_encoder
+from src.utils.config import AttnResConfig, ModelConfig
 
 
 def masked_language_model_loss(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     return F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1), ignore_index=-100)
+
+
+def _build_decoder(decoder_config: ModelConfig) -> nn.Module:
+    if decoder_config.architecture == "baseline":
+        return GPTBaseline(decoder_config)
+    if decoder_config.architecture == "block_attnres" or (
+        decoder_config.architecture == "attnres" and decoder_config.attnres.mode == "block"
+    ):
+        return GPTBlockAttnRes(decoder_config)
+    if decoder_config.architecture == "attnres":
+        return GPTAttnRes(decoder_config)
+    raise ValueError(f"Unsupported decoder architecture: {decoder_config.architecture}")
+
+
+class TinyAttnResVLM(nn.Module):
+    """Trainable tiny ViT encoder + linear connector + existing GPT decoder."""
+
+    def __init__(
+        self,
+        *,
+        vision_config: VisionConfig,
+        decoder_config: ModelConfig,
+        encoder_residual: str = "baseline",
+        decoder_residual: str = "baseline",
+    ) -> None:
+        super().__init__()
+        vision_cfg = VisionConfig(
+            image_size=vision_config.image_size,
+            patch_size=vision_config.patch_size,
+            in_channels=vision_config.in_channels,
+            d_model=vision_config.d_model,
+            n_layers=vision_config.n_layers,
+            n_heads=vision_config.n_heads,
+            d_ff=vision_config.d_ff,
+            dropout=vision_config.dropout,
+            bias=vision_config.bias,
+            norm_eps=vision_config.norm_eps,
+            init_std=vision_config.init_std,
+            residual=encoder_residual,  # type: ignore[arg-type]
+            attnres=AttnResConfig(**vision_config.attnres.__dict__),
+        )
+
+        decoder_attnres = AttnResConfig(**decoder_config.attnres.__dict__)
+        if decoder_residual == "block_attnres":
+            decoder_architecture = "block_attnres"
+            decoder_attnres.enabled = True
+            decoder_attnres.mode = "block"
+            if decoder_attnres.num_blocks is None:
+                decoder_attnres.num_blocks = max(1, decoder_config.n_layers // 2)
+        elif decoder_residual == "attnres":
+            decoder_architecture = "attnres"
+            decoder_attnres.enabled = True
+            decoder_attnres.mode = "full"
+        else:
+            decoder_architecture = "baseline"
+            decoder_attnres.enabled = False
+
+        decoder_cfg = ModelConfig(
+            architecture=decoder_architecture,
+            size_name=decoder_config.size_name,
+            vocab_size=decoder_config.vocab_size,
+            max_seq_len=decoder_config.max_seq_len,
+            d_model=decoder_config.d_model,
+            n_layers=decoder_config.n_layers,
+            n_heads=decoder_config.n_heads,
+            d_ff=decoder_config.d_ff,
+            dropout=decoder_config.dropout,
+            bias=decoder_config.bias,
+            tie_weights=decoder_config.tie_weights,
+            norm_eps=decoder_config.norm_eps,
+            init_std=decoder_config.init_std,
+            attnres=decoder_attnres,
+        )
+
+        self.encoder_residual = encoder_residual
+        self.decoder_residual = decoder_residual
+        self.vision_config = vision_cfg
+        self.encoder = build_vision_encoder(vision_cfg)
+        self.connector = nn.Linear(vision_cfg.d_model, decoder_cfg.d_model)
+        self.decoder = _build_decoder(decoder_cfg)
+        nn.init.normal_(self.connector.weight, mean=0.0, std=decoder_cfg.init_std)
+        if self.connector.bias is not None:
+            nn.init.zeros_(self.connector.bias)
+
+    @property
+    def decoder_config(self) -> ModelConfig:
+        return self.decoder.config
+
+    def set_weight_capture(self, enabled: bool) -> None:
+        if hasattr(self.encoder, "set_weight_capture"):
+            self.encoder.set_weight_capture(enabled)
+        if hasattr(self.decoder, "set_weight_capture"):
+            self.decoder.set_weight_capture(enabled)
+
+    def iter_encoder_depth_residuals(self) -> list[DepthAttentionResidual]:
+        if hasattr(self.encoder, "iter_depth_residuals"):
+            return self.encoder.iter_depth_residuals()
+        return []
+
+    def iter_decoder_depth_residuals(self) -> list[DepthAttentionResidual]:
+        if hasattr(self.decoder, "iter_depth_residuals"):
+            return self.decoder.iter_depth_residuals()
+        return []
+
+    def forward(
+        self,
+        *,
+        pixel_values: torch.Tensor,
+        input_ids: torch.Tensor,
+        targets: torch.Tensor | None = None,
+        return_aux: bool = False,
+    ) -> dict[str, Any]:
+        vision_hidden, vision_aux = self.encoder(pixel_values, return_aux=return_aux)
+        prefix_embeddings = self.connector(vision_hidden.to(dtype=self.connector.weight.dtype))
+        logits, decoder_aux = self.decoder(
+            input_ids,
+            return_aux=return_aux,
+            prefix_embeddings=prefix_embeddings,
+        )
+        prefix_len = prefix_embeddings.size(1)
+        target_len = input_ids.size(1) if targets is None else targets.size(1)
+        text_logits = logits[:, prefix_len : prefix_len + target_len, :]
+        payload: dict[str, Any] = {
+            "logits": text_logits,
+            "prefix_length": prefix_len,
+            "vision_aux": vision_aux if return_aux else {},
+            "decoder_aux": decoder_aux if return_aux else {},
+        }
+        if targets is not None:
+            loss = masked_language_model_loss(text_logits, targets)
+            payload["loss"] = loss
+            payload["perplexity"] = perplexity_from_loss(float(loss.item()))
+        return payload
 
 
 @dataclass
@@ -39,6 +178,8 @@ class SiglipAttnResCaptioner(nn.Module):
         decoder_config: ModelConfig,
     ) -> None:
         super().__init__()
+        if AutoProcessor is None or AutoModel is None:
+            raise ImportError("transformers is required for SiglipAttnResCaptioner")
         processor = AutoProcessor.from_pretrained(vision_model_name)
         vision_backbone = AutoModel.from_pretrained(vision_model_name)
         if hasattr(vision_backbone, "vision_model"):
@@ -54,12 +195,7 @@ class SiglipAttnResCaptioner(nn.Module):
 
         vision_hidden_size = int(getattr(self.vision_encoder.config, "hidden_size"))
         self.connector = nn.Linear(vision_hidden_size, decoder_config.d_model)
-        if decoder_config.architecture == "attnres":
-            self.decoder = GPTAttnRes(decoder_config)
-        elif decoder_config.architecture == "baseline":
-            self.decoder = GPTBaseline(decoder_config)
-        else:
-            raise ValueError(f"Unsupported decoder architecture: {decoder_config.architecture}")
+        self.decoder = _build_decoder(decoder_config)
 
     @property
     def decoder_config(self) -> ModelConfig:
