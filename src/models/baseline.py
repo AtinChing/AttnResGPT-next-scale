@@ -83,6 +83,65 @@ class CausalSelfAttention(nn.Module):
         return output, attn_summary
 
 
+class BidirectionalSelfAttention(nn.Module):
+    """Non-causal self-attention for vision encoders."""
+
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        dropout: float,
+        *,
+        bias: bool = True,
+    ) -> None:
+        super().__init__()
+        if d_model % n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.head_dim = d_model // n_heads
+        self.dropout = dropout
+        self.qkv_proj = nn.Linear(d_model, 3 * d_model, bias=bias)
+        self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.resid_dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        *,
+        return_attention: bool = False,
+    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+        batch_size, seq_len, _ = x.shape
+        qkv = self.qkv_proj(x)
+        q, k, v = qkv.chunk(3, dim=-1)
+
+        q = q.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        k = k.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        v = v.view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+
+        if return_attention or not hasattr(F, "scaled_dot_product_attention"):
+            scale = 1.0 / math.sqrt(self.head_dim)
+            scores = torch.matmul(q, k.transpose(-2, -1)) * scale
+            attn = torch.softmax(scores, dim=-1)
+            attn = self.attn_dropout(attn)
+            output = torch.matmul(attn, v)
+            attn_summary = attn.mean(dim=1)
+        else:
+            output = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                dropout_p=self.dropout if self.training else 0.0,
+                is_causal=False,
+            )
+            attn_summary = None
+
+        output = output.transpose(1, 2).contiguous().view(batch_size, seq_len, self.d_model)
+        output = self.resid_dropout(self.out_proj(output))
+        return output, attn_summary
+
+
 class FeedForward(nn.Module):
     def __init__(self, d_model: int, d_ff: int, dropout: float, *, bias: bool = True) -> None:
         super().__init__()
