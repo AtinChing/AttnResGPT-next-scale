@@ -212,11 +212,16 @@ class VQATokenizer:
         *,
         supervise_eos: bool = True,
     ) -> dict[str, list[int]]:
+        """Build teacher-forced VQA sequence without answer leakage.
+
+        Supervise next-token prediction at ``<answer>``, not at the answer token.
+        """
         question_ids = self.encode(question)
         answer_id = self.token_to_id[answer]
         input_ids = [self.bos_token_id, *question_ids, self.answer_token_id, answer_id, self.eos_token_id]
         targets = [-100] * len(input_ids)
-        answer_position = len(input_ids) - 2
+        answer_position = len(input_ids) - 3
+        assert input_ids[answer_position] == self.answer_token_id
         targets[answer_position] = answer_id
         if supervise_eos:
             targets[answer_position + 1] = self.eos_token_id

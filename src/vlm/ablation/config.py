@@ -65,6 +65,8 @@ class AblationExperimentConfig:
     mixed_precision: bool = True
     amp_dtype: str = "auto"
     supervise_eos: bool = True
+    # Predict answer at the <answer> marker (next-token), never at the answer token itself.
+    answer_supervision: str = "at_answer_marker"
     run_controls: bool = True
 
     # Tiny controlled VLM defaults for CLEVR (128x128 / 16x16 -> 64 patches)

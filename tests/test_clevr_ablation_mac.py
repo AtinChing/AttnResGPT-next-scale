@@ -52,6 +52,12 @@ def test_clevr_tokenizer_unk_and_supervised() -> None:
     encoded = tok.encode_supervised("how many spheres unseen", "2", allow_unk=True)
     assert tok.unk_token_id in encoded["input_ids"]
     assert encoded["targets"].count(-100) >= 3
+    # No answer leakage: prediction position is the <answer> marker.
+    pos = encoded["answer_position"]
+    assert encoded["input_ids"][pos] == tok.answer_token_id
+    assert encoded["targets"][pos] == encoded["answer_id"]
+    assert encoded["input_ids"][pos] != encoded["answer_id"]
+    assert encoded["input_ids"][pos + 1] == encoded["answer_id"]
 
 
 def test_preprocess_deterministic_pad() -> None:

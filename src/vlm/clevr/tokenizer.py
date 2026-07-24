@@ -76,13 +76,24 @@ class CLEVRTokenizer:
         supervise_eos: bool = True,
         allow_unk: bool = True,
     ) -> dict[str, Any]:
+        """Build teacher-forced VQA sequence without answer leakage.
+
+        Sequence: ``<bos> question <answer> ANSWER <eos>``
+
+        Supervise the **next-token prediction at ``<answer>``**, so the causal
+        model must predict ANSWER without seeing the ANSWER embedding.
+        Optionally also supervise EOS at the ANSWER position.
+        """
         question_ids = self.encode(question, allow_unk=allow_unk)
         answer_id = self.encode_answer(answer, allow_unk=allow_unk)
         input_ids = [self.bos_token_id, *question_ids, self.answer_token_id, answer_id, self.eos_token_id]
         targets = [-100] * len(input_ids)
-        answer_position = len(input_ids) - 2
+        # Position of <answer> marker: predict the answer token from here.
+        answer_position = len(input_ids) - 3
+        assert input_ids[answer_position] == self.answer_token_id
         targets[answer_position] = answer_id
         if supervise_eos:
+            # At the answer token position, predict <eos>.
             targets[answer_position + 1] = self.eos_token_id
         return {
             "input_ids": input_ids,
